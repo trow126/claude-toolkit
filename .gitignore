@@ -23,6 +23,7 @@ session-env/
 shell-snapshots/
 statsig/
 todos/
+.session/
 
 # SuperClaude standard files (not customized, root directory only)
 /*.md
