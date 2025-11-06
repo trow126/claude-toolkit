@@ -103,12 +103,12 @@ Last synced: 2025-10-30 12:30:45
 
 ```bash
 # ステップ1: アイデアを壁打ち
-/sc:brainstorm "ユーザー認証機能"
+/gh:brainstorm "ユーザー認証機能"
 → 対話的に要件整理
-→ メモリ保存: brainstorm_auth
+→ ファイル保存: claudedocs/brainstorm/jwt_auth_requirements_20251031.md
 
 # ステップ2: Issue作成
-/gh:issue create --from-memory brainstorm_auth
+/gh:issue create --from-file claudedocs/brainstorm/jwt_auth_requirements_20251031.md
 → Issue #42 作成
 
 # ステップ3: 作業開始
@@ -130,8 +130,7 @@ Last synced: 2025-10-30 12:30:45
 ### Issue作成
 ```bash
 /gh:issue create "タイトル"
-/gh:issue create --from-file <path>
-/gh:issue create --from-memory <key>
+/gh:issue create --from-file claudedocs/brainstorm/feature_requirements_20251031.md
 /gh:issue create --interactive
 ```
 
@@ -154,42 +153,59 @@ Last synced: 2025-10-30 12:30:45
 /gh:issue close 42                # Issue完了
 ```
 
-## 🤖 Skillsの自動起動
+## 🤖 Skills実行アーキテクチャ
 
-Skillsは**自動的に起動**します。明示的に呼び出す必要はありません：
+コマンドは**Task toolでagentに委譲**され、agent内でSkillsが起動されます：
+
+```
+/gh:issue work 42
+  ↓
+Task tool → general-purpose agent
+  ↓
+Agent内でSkills実行:
+  1. issue-parser skill
+  2. issue-todowrite-sync skill
+  3. progress-tracker skill
+  4. issue-retrospective skill (closeコマンド時)
+```
 
 ### issue-parser
-**起動条件**:
-- "Issue #42 を解析"
-- "Issue からタスク抽出"
-- `/gh:issue work 42` 実行時
+**起動方法**: Agent内で明示的に起動
 
 **機能**:
-- Issue本文のMarkdown解析
-- タスクリスト（`- [ ]`）抽出
+- Issue本文 + コメントのMarkdown解析
+- コメントから最新進捗を確認
+- タスクリスト（`- [ ]` / `- [x]`）抽出
+- 完了済みタスク（[x]）を識別
 - フェーズ（`##`見出し）認識
 
 ### issue-todowrite-sync
-**起動条件**:
-- "Issue を TodoWrite に変換"
-- "進捗を同期"
-- `/gh:issue work 42` 実行時
+**起動方法**: Agent内で明示的に起動
 
 **機能**:
-- Issue → TodoWrite変換
+- Issue → TodoWrite変換（未完了タスクのみ）
+- 完了済みタスク（[x]）を自動除外
 - TodoWrite → GitHub同期
 - セッション内で状態管理
 
 ### progress-tracker
-**起動条件**:
-- TodoWriteタスク完了時（自動）
-- "進捗を同期"
-- `/gh:issue status 42` 実行時
+**起動方法**: Agent内で明示的に起動
 
 **機能**:
 - TodoWrite完了検知
 - GitHub進捗コメント投稿
 - 全完了時のIssue自動クローズ
+
+### issue-retrospective
+**起動方法**: `close`コマンド実行時に自動起動（`--no-retro`でスキップ可能）
+
+**機能**:
+- Issue完了後の学習抽出
+- タイムライン、成功パターン、課題を分析
+- 振り返りを記録:
+  - **GitHub Issue comment**: 構造化された振り返りコメント
+  - **claudedocs/learnings.md**: プロジェクト全体の知見蓄積
+- 継続的改善サイクルを実現
 
 ## 📝 セッション内での作業
 
@@ -256,44 +272,60 @@ gh auth login
 
 💡 **Tip 2**: TodoWriteで作業するだけでGitHubが自動更新される
 
-💡 **Tip 3**: `/sc:brainstorm` → `/gh:issue create --from-memory` が最強の組み合わせ
+💡 **Tip 3**: `/gh:brainstorm` → `/gh:issue create --from-file` が最強の組み合わせ
 
 💡 **Tip 4**: セッション内で作業完結が最も効率的
 
-💡 **Tip 5**: Skillsは自動起動するので意識する必要なし
+💡 **Tip 5**: Task toolがagentに委譲 - 複雑な操作も自動処理
+
+💡 **Tip 6**: `work`はコメントも確認 - GitHubの最新進捗を自動反映
+
+💡 **Tip 7**: 完了済みタスク（[x]）はTodoWriteから自動除外 - 未完了のみ作業
+
+💡 **Tip 8**: Agent内でSkills順次実行 - issue-parser → issue-todowrite-sync → progress-tracker
+
+💡 **Tip 9**: `close`で自動振り返り - 学習がGitHub + `claudedocs/learnings.md` に記録され、次のIssueに活かされる
 
 ## 🏗️ アーキテクチャ
 
 ```
-┌─────────────────┐
-│  /gh:issue      │  ← ユーザー操作
-│  (コマンド)      │
-└────────┬────────┘
-         │
-    ┌────▼─────────────────────────┐
-    │  Skills (自動起動)             │
-    │                              │
-    │  ┌─────────────────────┐    │
-    │  │ issue-parser        │    │
-    │  │ (Issue解析)         │    │
-    │  └──────┬──────────────┘    │
-    │         │                    │
-    │  ┌──────▼──────────────┐    │
-    │  │ issue-todowrite-sync│    │
-    │  │ (変換・同期)         │    │
-    │  └──────┬──────────────┘    │
-    │         │                    │
-    │  ┌──────▼──────────────┐    │
-    │  │ progress-tracker    │    │
-    │  │ (進捗監視)          │    │
-    │  └─────────────────────┘    │
-    └──────────────────────────────┘
-                 │
-    ┌────────────▼─────────────┐
-    │  GitHub Issues           │
-    │  TodoWrite               │
-    │  Session Context         │
-    └──────────────────────────┘
+┌─────────────────────┐
+│  /gh:issue work 42  │  ← ユーザー操作
+│  (スラッシュコマンド)│
+└──────────┬──────────┘
+           │
+           ▼
+┌──────────────────────────┐
+│  Task Tool               │  ← 複雑な操作を委譲（>3 steps）
+│  (Agent Orchestration)   │
+└──────────┬───────────────┘
+           │
+           ▼
+┌──────────────────────────────┐
+│  general-purpose Agent       │
+│                              │
+│  ┌─────────────────────┐    │
+│  │ issue-parser skill  │    │
+│  │ (Issue解析)         │    │
+│  └──────┬──────────────┘    │
+│         │                    │
+│  ┌──────▼──────────────┐    │
+│  │ issue-todowrite-sync│    │
+│  │ (変換・同期)         │    │
+│  └──────┬──────────────┘    │
+│         │                    │
+│  ┌──────▼──────────────┐    │
+│  │ progress-tracker    │    │
+│  │ (進捗監視)          │    │
+│  └─────────────────────┘    │
+└──────────────────────────────┘
+           │
+           ▼
+┌──────────────────────────┐
+│  GitHub Issues           │
+│  TodoWrite               │
+│  Session Context         │
+└──────────────────────────┘
 ```
 
 ---
