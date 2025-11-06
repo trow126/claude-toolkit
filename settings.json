@@ -1,3 +1,7 @@
 {
+  "statusLine": {
+    "type": "command",
+    "command": "~/.claude/statusline.js"
+  },
   "alwaysThinkingEnabled": true
 }
