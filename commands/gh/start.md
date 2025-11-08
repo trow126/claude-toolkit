@@ -31,6 +31,42 @@ personas: [architect, frontend, backend, security, qa-specialist]
 └──────────────────────────────────────┘
 ```
 
+## サブエージェント委譲アーキテクチャ
+
+```
+/gh:start (メインエージェント)
+    ↓
+┌─────────────────────────────────────────┐
+│ Phase 3: Task実装                        │
+│ Task tool → 実装エージェント             │
+│   - コード生成・編集                     │
+│   - テスト実行                           │
+│   - ビルド検証                           │
+└───────────────┬─────────────────────────┘
+                ↓ 完了
+┌─────────────────────────────────────────┐
+│ Phase 4: GitHub同期                      │
+│ Task tool → 同期エージェント             │
+│   - progress-tracker skill起動          │
+│   - GitHub Issue更新                     │
+│   - コメント投稿                         │
+│   - チェックボックス更新                 │
+│   - 自動クローズ（全タスク完了時）       │
+└───────────────┬─────────────────────────┘
+                ↓ 同期完了
+┌─────────────────────────────────────────┐
+│ Phase 5: 次タスク提案                    │
+│   - 未完了タスク確認                     │
+│   - 次タスク提示                         │
+└─────────────────────────────────────────┘
+
+メリット:
+✅ 確実な即座同期（TodoWriteイベント制約を回避）
+✅ 独立したGitHub API操作（エラー隔離）
+✅ メインエージェントのブロッキング回避
+✅ progress-tracker skillの確実な起動
+```
+
 ## Triggers
 - TodoWriteタスク作成後の実装開始
 - GitHub Issue workフロー後の実装作業
@@ -141,7 +177,7 @@ personas: [architect, frontend, backend, security, qa-specialist]
 ### Phase 3: Implementation（実装）
 
 ```yaml
-10. Task tool → general-purpose agent に委譲:
+10. Task tool → general-purpose agent（実装エージェント）に委譲:
     prompt: "Issue #42のTask 1を実装してください"
     context:
       - Issue番号
@@ -149,7 +185,7 @@ personas: [architect, frontend, backend, security, qa-specialist]
       - 選択されたペルソナ
       - 必要なMCPサーバー
 
-11. Agent内で実装実行:
+11. 実装エージェント内で実装実行:
     - ペルソナ起動
     - MCPサーバー起動
     - コード生成・編集
@@ -158,6 +194,7 @@ personas: [architect, frontend, backend, security, qa-specialist]
 12. 実装完了を検証:
     - ビルド成功確認
     - テスト通過確認
+    - 実装エージェント終了
 ```
 
 ### Phase 4: Immediate Sync（即座同期）**最重要**
@@ -167,22 +204,38 @@ personas: [architect, frontend, backend, security, qa-specialist]
     TodoWrite({"status": "completed"})
 
 14. GitHub Issue即座同期（Issue連携時）:
-    a. progress-tracker skill起動
-    b. 完了タスクをカウント
-    c. GitHubにコメント投稿:
-       gh issue comment <number> --body "✅ Task 1/5: API実装 (20%)"
+    ⚠️ CRITICAL: Task tool経由でサブエージェントに委譲
 
-    d. Issue本文のチェックボックス更新:
-       - [ ] Task 1 → [x] Task 1
-       （gh CLIまたはAPIで更新）
+    Task tool起動:
+      subagent_type: "general-purpose"
+      description: "Sync Issue progress after task completion"
+      prompt: |
+        Issue #<number>のTask <N>が完了しました。
+        以下を実行してください:
 
-    e. セッションコンテキストを更新:
-       - 最終同期時刻
-       - 完了タスク数
+        1. progress-tracker skillを起動
+        2. 完了タスクをカウント
+        3. GitHubにコメント投稿:
+           gh issue comment <number> --body "✅ Task <N>/<total>: <task_name> (<percentage>%)"
+        4. Issue本文のチェックボックス更新:
+           gh issue edit <number> --body "$(更新されたタスクリスト)"
+        5. セッションコンテキストを更新
+        6. 全タスク完了時は自動クローズ（--no-auto-closeフラグがない場合）
 
-15. 全タスク完了チェック:
+    委譲理由:
+      - TodoWriteイベント検知の制約を回避
+      - 確実な即座同期を保証
+      - GitHub API操作の独立実行
+      - メインエージェントのブロッキング回避
+
+15. サブエージェント完了待機:
+    - 同期完了確認
+    - GitHub更新結果を受信
+    - エラーハンドリング
+
+16. 全タスク完了チェック:
     - 全タスクが完了？
-      → Yes: Issue自動クローズ（--no-auto-closeがない場合）
+      → Yes: Issue自動クローズ（サブエージェントで実行済み）
       → No: 次のタスクを提案
 
 理由: セッション中断しても進捗はGitHubに永続化済み
@@ -499,7 +552,22 @@ Status: pending → in_progress
 🎭 ペルソナ起動: Frontend, Architect
 🔧 MCP起動: Magic, Context7
 
-🚀 実装開始...
+🚀 実装エージェント起動...
+→ [実装エージェント] コンポーネント生成中...
+→ [実装エージェント] テスト作成中...
+→ [実装エージェント] ビルド検証中...
+✅ [実装エージェント] Task #3完了
+
+🔄 同期エージェント起動...
+→ [同期エージェント] progress-tracker skill起動
+→ [同期エージェント] GitHub Issue #42更新中...
+→ [同期エージェント] コメント投稿: "✅ Task 3/5: Frontend認証UI実装 (60%)"
+→ [同期エージェント] チェックボックス更新: [x] Task 3
+✅ [同期エージェント] 同期完了
+
+📊 進捗更新完了
+GitHub: 3/5タスク (60%)
+次のタスク: #4 "API統合"
 ```
 
 ### Example 2: Issue連携なしでの動作
@@ -655,10 +723,17 @@ Claude: ⚠️ GitHub同期エラー
 ### `progress-tracker` skill との連携
 ```yaml
 動作:
-  - /gh:start実行時に自動起動
-  - TodoWrite完了イベントを監視
+  - /gh:start実行時にサブエージェント経由で自動起動
+  - Task完了後に同期エージェントが起動
+  - progress-tracker skillを確実に実行
   - 完了ごとにGitHub即座更新
   - セッション終了後も状態はGitHubに永続化
+
+サブエージェント委譲による確実性:
+  - TodoWriteイベント検知の制約を回避
+  - 独立したエージェントでGitHub操作を実行
+  - エラーハンドリングと再試行を独立管理
+  - メインフローのブロッキング回避
 ```
 
 ## Boundaries
@@ -680,7 +755,7 @@ Claude: ⚠️ GitHub同期エラー
 
 💡 **Tip 1**: セッション再開時は自動同期 - 何もせず `/gh:start` でOK
 
-💡 **Tip 2**: タスク完了ごとに即座GitHub更新 - セッション中断しても安心
+💡 **Tip 2**: タスク完了ごとに即座GitHub更新 - サブエージェントが確実に実行
 
 💡 **Tip 3**: GitHub = 真実の記録、TodoWrite = 作業キュー - 役割分担が明確
 
@@ -692,7 +767,9 @@ Claude: ⚠️ GitHub同期エラー
 
 💡 **Tip 7**: 完了済み除外 - 既に終わったタスクは無視して効率化
 
-💡 **Tip 8**: 同期は自動 - 手動でGitHub操作する必要なし
+💡 **Tip 8**: 同期は完全自動 - 実装→同期の2段階エージェント委譲で確実性保証
+
+💡 **Tip 9**: エラー隔離 - 同期エラーがあっても実装は完了済み（再試行可能）
 
 ## Related Commands
 
@@ -723,4 +800,27 @@ Claude: ⚠️ GitHub同期エラー
 
 ---
 
-**注意**: このコマンドは**Task tool経由でgeneral-purpose agentに委譲**されます。Phase 0のContext Syncで最新状態をGitHubから取得し、セッション間の継続性を保証します。これにより、どのデバイス・どのセッションでも作業を続けられます。
+## アーキテクチャ詳細
+
+**2段階サブエージェント委譲**:
+
+1. **実装エージェント** (Phase 3)
+   - Task tool → general-purpose agent
+   - コード生成・編集・テスト実行
+   - ビルド検証・品質チェック
+   - 完了後、制御をメインエージェントに返却
+
+2. **同期エージェント** (Phase 4) ← **NEW: 確実な自動更新**
+   - Task tool → general-purpose agent
+   - progress-tracker skill起動
+   - GitHub Issue更新（コメント＋チェックボックス）
+   - 全タスク完了時の自動クローズ
+   - エラー時の再試行制御
+
+**利点**:
+- ✅ TodoWriteイベント検知制約を完全回避
+- ✅ GitHub同期の確実性を100%保証
+- ✅ エラー隔離（実装失敗 ≠ 同期失敗）
+- ✅ 非同期実行でメインフローをブロックしない
+
+**Phase 0のContext Sync**で最新状態をGitHubから取得し、セッション間の継続性を保証します。これにより、どのデバイス・どのセッションでも作業を続けられます。
