@@ -31,3 +31,4 @@ todos/
 
 # Exclude SuperClaude standard commands
 commands/sc/
+skills/issue-todowrite-sync/scripts/__pycache__/convert_to_todowrite.cpython-312.pyc
