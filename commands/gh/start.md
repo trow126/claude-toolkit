@@ -135,6 +135,20 @@ personas: [architect, frontend, backend, security, qa-specialist]
    TodoWrite: 3タスク（未完了のみ）
 
    セッション状態: 同期完了 ✅
+
+3b. Phase情報を表示（Phase-by-Phase モード時）🆕:
+   マッピングに `phase_mode: true` が設定されている場合:
+
+   📊 Phase Progress: Phase 2/4 - Frontend
+   Current Phase: 3タスク（残り2タスク）
+
+   Phase Summary:
+   ✅ Phase 1: Backend - 3/3 タスク
+   🔄 Phase 2: Frontend - 1/3 タスク
+   ⏳ Phase 3: Testing - 0/5 タスク
+   ⏳ Phase 4: Deployment - 0/2 タスク
+
+   Next Phase: Phase 3 - Testing (5タスク)
 ```
 
 ### Phase 1: Task Selection（タスク選択）
@@ -516,7 +530,82 @@ fullstack_tasks:
 
 ## Examples
 
-### Example 1: セッション再開（自動同期）
+### Example 1: Phase-by-Phaseモード（推奨: 10+ tasks）🆕
+
+```bash
+# 15タスクのIssueをPhase単位で作業
+/gh:issue work 42 --phase-by-phase
+
+Claude: 📊 Issue #42: JWT認証実装（15タスク）
+
+Phase-by-Phase モード有効化 ✅
+→ 最初の未完了Phase: Phase 1 - Backend（3タスク）のみTodoWrite作成
+
+Phase Summary:
+⏳ Phase 1: Backend - 0/3 タスク
+⏳ Phase 2: Frontend - 0/4 タスク
+⏳ Phase 3: Testing - 0/5 タスク
+⏳ Phase 4: Deployment - 0/3 タスク
+
+TodoWriteタスク（Phase 1のみ）:
+⏳ 1. API実装
+⏳ 2. Database schema
+⏳ 3. Auth middleware
+
+合計: 3タスク（Phase 1のみ）
+次のPhase: Phase 2 - Frontend (4タスク)
+
+# 最初のタスク実行
+/gh:start
+
+Claude: 📊 Phase Progress: Phase 1/4 - Backend
+Current Phase: 3タスク（残り3タスク）
+
+📋 次のタスクを選択
+Task #1: "API実装"
+Status: pending → in_progress
+
+🚀 実装エージェント起動...
+✅ Task #1完了
+
+🔄 同期エージェント起動...
+→ GitHub Issue #42更新: "✅ Task 1/3: API実装 (33.3%)"
+✅ 同期完了
+
+📊 Phase 1 進捗: 1/3タスク (33.3%)
+次のタスク: #2 "Database schema"
+
+# Phase 1完了後、Phase 2自動展開
+/gh:start  # Task 2実装
+/gh:start  # Task 3実装 → Phase 1完了
+
+Claude: ✅ Phase 1 - Backend 完了！
+
+📋 次のPhase自動展開: Phase 2 - Frontend
+TodoWriteタスク追加（4タスク）:
+⏳ 4. Login UI component
+⏳ 5. Dashboard layout
+⏳ 6. API integration
+⏳ 7. Form validation
+
+Phase Summary:
+✅ Phase 1: Backend - 3/3 タスク
+🔄 Phase 2: Frontend - 0/4 タスク
+⏳ Phase 3: Testing - 0/5 タスク
+⏳ Phase 4: Deployment - 0/3 タスク
+
+# Phase 2作業継続
+/gh:start
+
+Claude: 📊 Phase Progress: Phase 2/4 - Frontend
+Current Phase: 4タスク（残り4タスク）
+
+Task #4: "Login UI component"
+Status: pending → in_progress
+...
+```
+
+### Example 2: セッション再開（自動同期）
 
 ```bash
 # Session 1で2タスク完了後、終了
