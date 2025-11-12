@@ -221,3 +221,68 @@ Works with:
 - **issue-parser**: Receives parsed Issue data
 - **progress-tracker**: Triggers on TodoWrite completion events
 - **/gh:issue command**: Primary workflow integration
+
+---
+
+## 実行指示
+
+**あなたは今、`issue-todowrite-sync` skillを実行しています。**
+
+### Part 1: Issue → TodoWrite変換
+
+1. **Pythonスクリプトで変換を実行**
+   ```bash
+   cat parsed_issue.json | python3 ~/.claude/skills/issue-todowrite-sync/scripts/convert_to_todowrite.py
+   ```
+
+2. **出力されたJSONを解析**
+   スクリプトの出力から `todowrite_tasks` 配列を取得
+
+3. **TodoWriteツールを呼び出す（重要！）**
+   ```
+   TodoWrite tool with todos parameter:
+   - Each todo from todowrite_tasks array
+   - Include: content, status, activeForm
+   ```
+
+   **例**:
+   ```json
+   [
+     {
+       "content": "API実装",
+       "status": "pending",
+       "activeForm": "API実装中"
+     },
+     {
+       "content": "テスト作成",
+       "status": "pending",
+       "activeForm": "テスト作成中"
+     }
+   ]
+   ```
+
+4. **結果をユーザーに報告**
+   - 作成されたTodoWriteタスクの数
+   - 各タスクの内容
+   - GitHubとの同期が有効化されたことを通知
+
+### Part 2: TodoWrite → GitHub同期
+
+1. **現在のTodoWrite状態を確認**
+   完了したタスクを特定
+
+2. **Pythonスクリプトでコメント投稿**
+   ```bash
+   echo '{"issue_number": 42, ...}' | python3 ~/.claude/skills/issue-todowrite-sync/scripts/sync_progress.py
+   ```
+
+3. **結果をユーザーに報告**
+   - GitHubへの同期完了
+   - 進捗率の更新
+   - Issue自動クローズ（該当する場合）
+
+---
+
+**必須ステップ**:
+- Part 1で **必ず TodoWrite ツールを呼び出す**こと（スクリプトの出力だけでは不十分）
+- スクリプトはJSON生成のみ、TodoWrite作成は Claude が実行
