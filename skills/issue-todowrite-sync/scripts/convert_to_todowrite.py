@@ -109,6 +109,29 @@ def convert_to_todowrite(parsed_issue):
             'status': status
         })
 
+    pending_count = sum(1 for t in tasks if not t.get('completed', False))
+
+    # Task count warnings
+    warning = None
+    if pending_count >= 15:
+        warning = {
+            'level': 'high',
+            'message': f'❌ WARNING: {pending_count} tasks detected (15+ tasks)',
+            'recommendation': 'Split into multiple Issues (5-8 tasks per Issue recommended)',
+            'recommended_issue_count': (pending_count + 7) // 8
+        }
+    elif pending_count >= 12:
+        warning = {
+            'level': 'medium',
+            'message': f'⚠️  Note: {pending_count} tasks detected (12+ tasks)',
+            'recommendation': 'Consider splitting into 2-3 Issues for better focus'
+        }
+    elif pending_count >= 8:
+        warning = {
+            'level': 'low',
+            'message': f'📊 Task count: {pending_count} tasks (manageable)'
+        }
+
     return {
         'issue_number': issue_number,
         'issue_title': issue_title,
@@ -116,10 +139,11 @@ def convert_to_todowrite(parsed_issue):
         'task_mapping': task_mapping,
         'phase_mode': False,
         'smart_default_applied': False,
+        'warning': warning,
         'metadata': {
             'total_tasks': len(tasks),
             'completed_tasks': sum(1 for t in tasks if t.get('completed', False)),
-            'pending_tasks': sum(1 for t in tasks if not t.get('completed', False))
+            'pending_tasks': pending_count
         }
     }
 
@@ -147,11 +171,11 @@ def should_use_phase_mode(parsed_issue, explicit_phase_mode=None):
     pending_task_count = len([t for t in tasks if not t.get('completed', False)])
 
     # Enable phase mode if:
-    # 1. 10+ pending tasks AND
+    # 1. 8+ pending tasks AND
     # 2. Multiple phases exist (>1)
     has_multiple_phases = len(phases) > 1
 
-    return pending_task_count >= 10 and has_multiple_phases
+    return pending_task_count >= 8 and has_multiple_phases
 
 
 def convert_to_todowrite_by_phase(parsed_issue, target_phase=None, phase_mode=None):
@@ -247,6 +271,30 @@ def convert_to_todowrite_by_phase(parsed_issue, target_phase=None, phase_mode=No
             'pending': len(phase_tasks_count) - completed_count
         }
 
+    total_pending = sum(1 for t in tasks if not t.get('completed', False))
+    current_phase_pending = sum(1 for t in phase_tasks if not t.get('completed', False))
+
+    # Task count warnings
+    warning = None
+    if total_pending >= 15:
+        warning = {
+            'level': 'high',
+            'message': f'❌ WARNING: {total_pending} total tasks in Issue',
+            'recommendation': 'Use --phase-by-phase to work in smaller chunks (3-5 tasks at a time)',
+            'current_phase_tasks': current_phase_pending
+        }
+    elif current_phase_pending >= 12:
+        warning = {
+            'level': 'medium',
+            'message': f'⚠️  Note: Creating {current_phase_pending} TodoWrite tasks',
+            'recommendation': 'Consider using --phase-by-phase for better focus'
+        }
+    elif current_phase_pending >= 8:
+        warning = {
+            'level': 'low',
+            'message': f'📊 Creating {current_phase_pending} tasks for current phase'
+        }
+
     return {
         'issue_number': issue_number,
         'issue_title': issue_title,
@@ -258,13 +306,14 @@ def convert_to_todowrite_by_phase(parsed_issue, target_phase=None, phase_mode=No
         'all_phases': phases,
         'phase_progress': phase_progress,
         'phase_summary': phase_summary,
+        'warning': warning,
         'metadata': {
             'total_tasks': len(tasks),
             'completed_tasks': sum(1 for t in tasks if t.get('completed', False)),
-            'pending_tasks': sum(1 for t in tasks if not t.get('completed', False)),
+            'pending_tasks': total_pending,
             'current_phase_tasks': len(phase_tasks),
             'current_phase_completed': sum(1 for t in phase_tasks if t.get('completed', False)),
-            'current_phase_pending': sum(1 for t in phase_tasks if not t.get('completed', False))
+            'current_phase_pending': current_phase_pending
         }
     }
 
@@ -275,7 +324,7 @@ def main():
     Expects parsed Issue JSON from stdin.
 
     Smart Default: Automatically uses phase-by-phase mode for large Issues
-    (10+ pending tasks with multiple phases).
+    (8+ pending tasks with multiple phases).
     """
     try:
         # Read parsed Issue data
@@ -283,6 +332,13 @@ def main():
 
         # Use smart default conversion (auto-detects phase mode)
         result = convert_to_todowrite_by_phase(parsed_issue, phase_mode=None)
+
+        # Display warning if present
+        if result.get('warning'):
+            warning = result['warning']
+            print(warning['message'], file=sys.stderr)
+            if 'recommendation' in warning:
+                print(f"💡 {warning['recommendation']}", file=sys.stderr)
 
         # Output JSON
         print(json.dumps(result, indent=2, ensure_ascii=False))
