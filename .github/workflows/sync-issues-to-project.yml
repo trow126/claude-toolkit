@@ -1,0 +1,51 @@
+name: Auto-sync Issues to GitHub Project
+
+on:
+  issues:
+    types: [opened, closed, reopened]
+
+  issue_comment:
+    types: [created]
+
+jobs:
+  sync-issue-lifecycle:
+    if: github.event_name == 'issues'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Sync Issue Status
+        run: |
+          source scripts/gh-projects-integration.sh
+
+          case "${{ github.event.action }}" in
+            opened)
+              gh_projects_set_todo "${{ github.event.issue.number }}"
+              ;;
+            closed)
+              gh_projects_set_done "${{ github.event.issue.number }}"
+              ;;
+            reopened)
+              gh_projects_set_in_progress "${{ github.event.issue.number }}"
+              ;;
+          esac
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  sync-issue-activity:
+    if: |
+      github.event_name == 'issue_comment' &&
+      github.event.issue.state == 'open' &&
+      github.event.comment.user.type != 'Bot'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set In Progress on Activity
+        run: |
+          source scripts/gh-projects-integration.sh
+          gh_projects_set_in_progress "${{ github.event.issue.number }}"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
