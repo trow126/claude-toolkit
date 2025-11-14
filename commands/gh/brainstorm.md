@@ -494,7 +494,17 @@ $ /sc:spawn "Issue #42の3タスクを並列実装"
    - Understand problem → Define requirements → Choose technology
 
 2. **Create oversized scope**
-   - 1 Issue = 1-3 days of work
+   ```
+   ✅ 5-8 tasks per Issue (optimal, 1-3 days work)
+   ⚠️  12+ tasks → Consider splitting into multiple Issues
+   ❌ 15+ tasks → Definitely split (cognitive overload)
+
+   Example - Large Feature Split:
+   Issue #1: Phase 1 - Backend API (6 tasks)
+   Issue #2: Phase 2 - Frontend UI (5 tasks)
+   Issue #3: Phase 3 - Integration (4 tasks)
+   ```
+   - 1 Issue = 1 focused sprint
    - Large features → Multiple Issues
 
 3. **Use vague success criteria**
