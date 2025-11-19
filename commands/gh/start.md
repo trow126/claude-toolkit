@@ -39,6 +39,11 @@ personas: [architect, frontend, backend, security, qa-specialist]
 /gh:start 1,2,3 --parallel
 → Phase 1.5スキップ
 → すべて強制的に並列実行
+
+# 全タスク実行（10タスク超の場合）
+/gh:start --all
+→ タスク数制限を無視
+→ 全pendingタスクを実行
 ```
 
 ## Architecture
@@ -97,9 +102,30 @@ Phase 4: GitHub同期 (Task tool → 同期エージェント)
 
 ```yaml
 4. pendingタスクを確認・選択:
-   - 引数なし → 全pending（並列判断）
-   - 番号指定 → 指定タスク
-   - --parallel → 強制並列
+
+   a. 全pendingタスクを取得
+
+   b. 🔴 タスク数チェック（大量タスク対策・必須）:
+      pending_count = len(pending_tasks)
+
+      if pending_count > 10:
+        ⚠️ 警告表示:
+          "{pending_count}個のpendingタスクがあります
+
+          推奨アクション:
+          - 特定タスクのみ: /gh:start 1,2,3
+          - 次のPhaseのみ: /gh:issue work {issue_number} --current-phase \"Phase N\"
+          - 最初の5タスクのみ実行（デフォルト）
+          - 全タスク実行: /gh:start --all
+
+          デフォルト動作: 最初の5タスクのみ実行します"
+
+   c. 実行タスク決定:
+      - 引数なし + pending ≤ 10 → 全pending（並列判断）
+      - 引数なし + pending > 10 → 最初の5タスク（警告表示済み）
+      - 番号指定 (例: 1,2,3) → 指定タスクのみ
+      - --all フラグ → 全pending強制実行
+      - --parallel フラグ → 強制並列
 ```
 
 ### Phase 1.5: Parallel Decision（自動判断・必須ステップ）
@@ -273,9 +299,9 @@ Phase 4: GitHub同期 (Task tool → 同期エージェント)
 ### Scenario 2: 並列実行（自動判断）
 
 ```bash
-/gh:start  # 引数なし = 全pendingタスク
+/gh:start  # 引数なし = 最大10タスクまで自動実行
 
-→ 7タスクを分析
+→ 7タスクを分析（10以下なので全実行）
 → 依存関係検出:
   Task 1: Database (Layer 1)
   Task 2: User model (Layer 2, Task 1依存)
@@ -291,6 +317,27 @@ Phase 4: GitHub同期 (Task tool → 同期エージェント)
   Group 5: [Task 7]     - 逐次
 
 → 推定時短: 50% (逐次21分 → 並列11分)
+```
+
+### Scenario 3: 大量タスク制御
+
+```bash
+# 15タスクある場合
+/gh:start
+
+→ ⚠️ 15個のpendingタスクがあります
+→ 推奨アクション:
+  - 特定タスクのみ: /gh:start 1,2,3
+  - 次のPhaseのみ: /gh:issue work 42 --current-phase "Phase 2"
+  - 最初の5タスクのみ実行（デフォルト）
+  - 全タスク実行: /gh:start --all
+→ デフォルト動作: 最初の5タスクのみ実行します
+
+→ Task 1-5を実行...
+
+# 全タスク実行したい場合
+/gh:start --all
+→ 15タスク全て実行（タスク数制限無視）
 ```
 
 ## MCP Integration
@@ -317,6 +364,7 @@ fullstack: [architect, frontend, backend, security]
 --framework <name>   # フレームワーク指定
 --with-tests         # テスト自動生成
 --parallel           # 強制並列（依存関係分析スキップ）
+--all                # 全pendingタスク実行（10タスク超でも実行）
 --no-sync            # 自動同期スキップ（非推奨）
 ```
 
@@ -357,11 +405,14 @@ progress-tracker skill:
 - セッション間での作業継続性保証
 - 複数デバイス・複数人協調作業支援
 - 完了済みタスク自動除外
+- 大量タスク警告表示（10タスク超）
+- デフォルトで最初の5タスクのみ実行（10タスク超の場合）
 
 ### Will Not Do ❌
 - Serenaメモリに進捗保存（GitHubが真実）
 - 同期なし作業（--no-sync除く）
 - GitHubとTodoWriteの不一致放置
+- 警告なしで大量タスクを全実行（--allフラグが必要）
 
 ## 実行指示（重要）
 
@@ -372,11 +423,12 @@ progress-tracker skill:
 **ユーザーが明示的に指示しなくても、以下を自動的に実行してください:**
 
 1. ✅ TodoWriteから全pendingタスクを取得
-2. ✅ 各タスクの内容（content）を読み取る
-3. ✅ Phase 1.5で依存関係を自動分析
-4. ✅ 並列グループを作成
-5. ✅ **実行プランをユーザーに表示**
-6. ✅ グループごとに実装を実行
+2. ✅ タスク数チェック（>10で警告、最初の5タスクに制限）
+3. ✅ 各タスクの内容（content）を読み取る
+4. ✅ Phase 1.5で依存関係を自動分析
+5. ✅ 並列グループを作成
+6. ✅ **実行プランをユーザーに表示**
+7. ✅ グループごとに実装を実行
 
 **⚠️ Phase 1.5（依存関係分析）はデフォルト動作です。スキップしないでください。**
 
@@ -385,10 +437,15 @@ progress-tracker skill:
 ### 引数解析と実行モード
 
 **引数なし (`/gh:start`)**:
-- 全pendingタスク → Phase 1.5必須実行 → 並列グループ作成 → プラン表示 → 実装
+- pending ≤ 10: 全pendingタスク → Phase 1.5必須実行 → 並列グループ作成 → プラン表示 → 実装
+- pending > 10: 警告表示 → 最初の5タスクのみ → Phase 1.5必須実行 → 実装
 
 **タスク番号指定 (`/gh:start 1,2,3`)**:
 - 指定タスク → Phase 1.5必須実行 → 並列グループ作成 → プラン表示 → 実装
+
+**`--all` フラグ (`/gh:start --all`)** (10タスク超の場合):
+- 全pendingタスク → Phase 1.5必須実行 → 並列グループ作成 → プラン表示 → 実装
+- タスク数制限を無視して全て実行
 
 **`--parallel` フラグ (`/gh:start 1,2,3 --parallel`)** ⚠️:
 - Phase 1.5スキップ → 全て強制並列 → リスク: 依存関係違反
@@ -407,6 +464,7 @@ Phase 0: GitHub同期
 
 Phase 1: タスク選択
   - 全pendingタスクを取得
+  - タスク数チェック（>10で警告、最初の5タスクに制限）
   - TodoWriteから実際のタスク内容（content）を読み取る
 
 🚨 Phase 1.5: 依存関係分析（必須・スキップ禁止）🚨
@@ -561,3 +619,5 @@ Task tool起動:
 💡 **役割分担**: GitHub=真実、TodoWrite=作業キュー
 💡 **複数デバイスOK**: 自宅・オフィス・カフェでシームレス継続
 💡 **Issue連携必須**: `/gh:issue work` でマッピング確立
+💡 **大量タスク制御**: 10タスク超は自動的に最初の5タスクのみ実行
+💡 **Phase単位作業**: `/gh:issue work` のPhase制御と連携して効率的に作業
