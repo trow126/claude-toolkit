@@ -1,12 +1,12 @@
 ---
 name: gh:brainstorm
-description: "Interactive requirements discovery for GitHub Issue creation through Socratic dialogue"
+description: "ソクラテス式対話を通じて GitHub Issue 作成用の要件をインタラクティブに整理する"
 category: workflow
 complexity: medium
 mcp-servers: [sequential, context7]
 ---
 
-# /gh:brainstorm - Issue Requirements Discovery
+# /gh:brainstorm - Issue 要件ブレインストーミング
 
 > **Purpose**: Transform ambiguous ideas into concrete GitHub Issue specifications through systematic exploration and Socratic dialogue.
 
