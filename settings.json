@@ -24,6 +24,7 @@
       "mcp__serena__get_current_config:*"
     ]
   },
+  "model": "opus",
   "hooks": {
     "SessionEnd": [
       {
@@ -51,5 +52,5 @@
     "command": "~/.claude/statusline.js"
   },
   "outputStyle": "ojosama",
-  "alwaysThinkingEnabled": true
+  "alwaysThinkingEnabled": false
 }
