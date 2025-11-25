@@ -1,6 +1,6 @@
 ---
 name: progress-tracker
-description: Track TodoWrite task completion and automatically update GitHub Issues with progress comments. Monitors TodoWrite changes and posts updates to linked Issues. Use when TodoWrite tasks are completed, Issue progress needs updating, or automatic sync is required. Activates on TodoWrite completion events or explicit sync requests.
+description: Track TodoWrite task completion and automatically update GitHub Issues with progress comments. Monitors TodoWrite changes and posts updates to linked Issues. Integrates with checkpoint-manager for Compact resilience. Use when TodoWrite tasks are completed, Issue progress needs updating, or automatic sync is required. Activates on TodoWrite completion events or explicit sync requests.
 allowed-tools: Bash, TodoWrite
 ---
 
@@ -15,6 +15,7 @@ Monitors TodoWrite task completion and automatically synchronizes progress to Gi
 - **Reads Issue mapping**: From session context
 - **Calculates progress**: Completion percentage and counts
 - **Updates GitHub**: Posts progress comments automatically
+- **Updates checkpoint**: Triggers checkpoint-manager for Serena Memory update
 - **Auto-closes Issues**: When all tasks are complete (if enabled)
 
 ### Manual Progress Updates
@@ -92,6 +93,20 @@ EOF
 )"
 ```
 
+#### Step 3.5: Update Checkpoint (Compact耐性)
+
+**🔴 必須: タスク完了後に checkpoint-manager skill でcheckpoint更新**
+```yaml
+checkpoint-manager skill を起動:
+  1. read_memory("issue_42_checkpoint")
+  2. 更新:
+     - task_mapping[i].status = "completed"
+     - progress.overall_completed++
+     - progress.percentage = (completed / total) * 100
+     - last_updated = now()
+  3. write_memory("issue_42_checkpoint", updated_yaml)
+```
+
 **Check for Auto-Close**
 ```python
 if completed_tasks == total_tasks and auto_close_enabled:
@@ -100,6 +115,9 @@ if completed_tasks == total_tasks and auto_close_enabled:
 
     # Close issue
     gh issue close 42 --reason "completed"
+
+    # Delete checkpoint (via checkpoint-manager skill)
+    delete_memory("issue_42_checkpoint")
 ```
 
 ## Usage Examples
@@ -237,20 +255,41 @@ issue-todowrite-sync: Creates mapping + TodoWrite tasks
 progress-tracker: Monitors TodoWrite completion
          ↓
 issue-todowrite-sync: Syncs progress to GitHub
+         ↓
+checkpoint-manager: Updates Serena Memory checkpoint
+```
+
+### With checkpoint-manager (Compact耐性)
+```
+タスク完了検出
+  → GitHub更新
+  → checkpoint-manager skill 起動
+    → read_memory("issue_{number}_checkpoint")
+    → task_mapping[i].status = "completed"
+    → progress 再計算
+    → write_memory("issue_{number}_checkpoint", updated_yaml)
+
+全タスク完了時
+  → Issue自動クローズ
+  → checkpoint-manager skill 起動
+    → delete_memory("issue_{number}_checkpoint")
 ```
 
 ### With /gh:issue Command
 ```
 /gh:issue work 42
   → Creates session mapping
+  → Creates checkpoint via checkpoint-manager
   → Activates progress-tracker monitoring
 
 TodoWrite completion
   → progress-tracker detects
   → Calls issue-todowrite-sync for GitHub update
+  → Calls checkpoint-manager for Serena Memory update
 
 /gh:issue status 42
   → progress-tracker provides current state from session
+  → Falls back to checkpoint if session data missing
 ```
 
 ## Implementation Notes
@@ -279,6 +318,7 @@ Since TodoWrite doesn't emit events, detection happens through:
 - `gh` CLI (GitHub CLI)
 - TodoWrite tool
 - issue-todowrite-sync skill (for sync logic)
+- checkpoint-manager skill (for Compact resilience)
 
 ## Testing
 
@@ -354,8 +394,13 @@ Claude:
 - **No reverse sync**: GitHub changes don't auto-update TodoWrite
 - **Single-direction**: TodoWrite → GitHub only (by design)
 - **GitHub dependency**: Requires network access
-- **Session-scoped**: Tracking state maintained within current session only
+- **Checkpoint updates**: Requires Serena Memory availability
 
 ---
 
-**Note**: This skill works best when TodoWrite tasks are the "source of truth" for progress. GitHub Issues reflect TodoWrite state, not the other way around. For best results, complete work within a single session.
+**Note**: This skill works best when TodoWrite tasks are the "source of truth" for progress. GitHub Issues reflect TodoWrite state, not the other way around. With checkpoint-manager integration, work can now be resumed across sessions after Compact events.
+
+---
+
+**Last Updated**: 2025-11-25
+**Version**: 1.1.0 (Checkpoint Integration)

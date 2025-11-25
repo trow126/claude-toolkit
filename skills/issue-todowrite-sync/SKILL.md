@@ -1,6 +1,6 @@
 ---
 name: issue-todowrite-sync
-description: Synchronize GitHub Issues with TodoWrite tasks bidirectionally. Converts Issue tasks to TodoWrite format and updates GitHub Issues when TodoWrite tasks complete. Use when starting work on Issues, managing task progress, converting Issues to todos, or syncing Issue status. Activates on "work on Issue", "convert to TodoWrite", "sync progress", or explicit "use issue-todowrite-sync skill".
+description: Synchronize GitHub Issues with TodoWrite tasks bidirectionally. Converts Issue tasks to TodoWrite format and updates GitHub Issues when TodoWrite tasks complete. Integrates with checkpoint-manager for Compact resilience. Use when starting work on Issues, managing task progress, converting Issues to todos, or syncing Issue status. Activates on "work on Issue", "convert to TodoWrite", "sync progress", or explicit "use issue-todowrite-sync skill".
 allowed-tools: TodoWrite, Bash, Read
 ---
 
@@ -15,12 +15,19 @@ Provides bidirectional synchronization between GitHub Issues and TodoWrite tasks
 - Generates proper `activeForm` for each task (e.g., "実装" → "実装中", "Implement" → "Implementing")
 - Maintains task-to-Issue mapping in session memory
 - Preserves completion status from GitHub
+- **Generates checkpoint data for checkpoint-manager skill**
 
 ### TodoWrite → Issue Synchronization
 - Posts progress comments to GitHub when tasks complete
 - Updates completion percentage automatically
 - Auto-closes Issues when all tasks are done (optional)
 - Tracks sync state within current session
+- **Triggers checkpoint updates on task completion**
+
+### Checkpoint Integration (Compact耐性)
+- Generates `task_mapping` for checkpoint-manager skill
+- Provides data for checkpoint creation after conversion
+- Supports recovery mode: rebuilds TodoWrite from checkpoint
 
 ## When to Use
 
@@ -79,9 +86,32 @@ Requires parsed Issue data (from `issue-parser` skill):
       "activeForm": "テスト作成中"
     }
   ],
-  "task_mapping": [...]
+  "task_mapping": [
+    {
+      "todowrite_index": 0,
+      "github_task_id": 1,
+      "text": "API実装",
+      "phase": "Backend",
+      "status": "pending"
+    },
+    {
+      "todowrite_index": 1,
+      "github_task_id": 2,
+      "text": "テスト作成",
+      "phase": "Testing",
+      "status": "pending"
+    }
+  ],
+  "checkpoint_data": {
+    "issue_number": 42,
+    "issue_title": "Feature: Authentication",
+    "phases": ["Backend", "Testing"],
+    "task_mapping": "..."
+  }
 }
 ```
+
+**⚠️ checkpoint_dataは checkpoint-manager skillに渡してcheckpoint作成に使用**
 
 ### Part 2: TodoWrite → Issue Sync
 
@@ -220,7 +250,33 @@ echo '{
 Works with:
 - **issue-parser**: Receives parsed Issue data
 - **progress-tracker**: Triggers on TodoWrite completion events
+- **checkpoint-manager**: Provides data for checkpoint creation and recovery
 - **/gh:issue command**: Primary workflow integration
+- **/gh:start command**: Checkpoint recovery mode integration
+
+### Checkpoint Manager Integration
+
+#### After Conversion (Part 1)
+```yaml
+Output includes checkpoint_data:
+  - issue_number, issue_title
+  - phases (extracted from tasks)
+  - task_mapping (TodoWrite ↔ GitHub mapping)
+
+→ checkpoint-manager skill uses this to:
+  write_memory("issue_{number}_checkpoint", checkpoint_yaml)
+```
+
+#### Recovery Mode (Compact後)
+```yaml
+Input: Checkpoint data from Serena Memory
+Process:
+  1. Read task_mapping from checkpoint
+  2. Filter: status != "completed"
+  3. Filter: phase == current_phase
+  4. Rebuild TodoWrite tasks
+Output: Restored TodoWrite state
+```
 
 ---
 
@@ -286,3 +342,37 @@ Works with:
 **必須ステップ**:
 - Part 1で **必ず TodoWrite ツールを呼び出す**こと（スクリプトの出力だけでは不十分）
 - スクリプトはJSON生成のみ、TodoWrite作成は Claude が実行
+- **checkpoint_data を checkpoint-manager skill に渡す**（Compact耐性）
+
+### Part 3: Recovery Mode（Compact後復旧）
+
+checkpoint-manager skillからの復旧リクエスト時:
+
+1. **チェックポイントデータを受け取る**
+   ```yaml
+   task_mapping:
+     - todowrite_index: 0
+       text: "API実装"
+       status: pending
+     - todowrite_index: 1
+       text: "テスト作成"
+       status: completed
+   current_phase: "Backend"
+   ```
+
+2. **未完了タスクをフィルタ**
+   - status != "completed"
+   - phase == current_phase（Phase単位制限適用時）
+
+3. **TodoWriteを再構築**
+   フィルタされたタスクのみTodoWrite作成
+
+4. **結果を報告**
+   - 復旧されたタスク数
+   - 現在のPhase
+   - 進捗状況
+
+---
+
+**Last Updated**: 2025-11-25
+**Version**: 1.1.0 (Checkpoint Integration)

@@ -9,7 +9,7 @@ personas: [architect, frontend, backend, security, qa-specialist]
 
 # /gh:start - TodoWriteタスク実装開始
 
-> **核心**: GitHub Issue = 永続化層、TodoWrite = セッション内キュー
+> **核心**: GitHub Issue = 永続化層（SSOT）、Serena Memory = チェックポイント、TodoWrite = セッション内キュー
 
 ## Triggers
 - TodoWriteタスク作成後の実装開始
@@ -74,13 +74,59 @@ Phase 4: GitHub同期 (Task tool → 同期エージェント)
 
 ## Behavioral Flow
 
-### Phase 0: Context Sync（最重要）
+### Phase 0.5: Checkpoint Recovery（Compact耐性・最重要）
+
+**🚨 このフェーズはCompact後の復旧を担当します。必ず最初に実行してください。**
+
+```yaml
+条件: TodoWriteが空 AND Serena Memoryにcheckpointが存在
+
+1. チェックポイント検索:
+   list_memories() → filter "issue_*_checkpoint"
+
+2. 単一checkpoint発見時:
+   a. read_memory("issue_{number}_checkpoint")
+   b. checkpoint内容を解析:
+      - current_phase: 現在のPhase
+      - task_mapping: タスクマッピング
+      - parallel_groups: 並列グループ（あれば）
+      - progress: 進捗状況
+
+3. 複数checkpoint発見時:
+   ⚠️ ユーザーに選択を促す:
+   "複数のアクティブIssueが検出されました:
+    - Issue #42: 3/8 (37.5%) - Phase 2: API Implementation
+    - Issue #45: 1/5 (20%) - Phase 1: Database
+
+    どのIssueを続行しますか？"
+
+4. GitHub照合（SSOT）:
+   a. gh issue view <number> --json body,comments
+   b. チェックボックス状態を解析
+   c. GitHub状態 vs checkpoint → GitHubが勝つ
+   d. 不一致があれば checkpoint を更新
+
+5. TodoWrite再構築:
+   a. 未完了タスクのみ抽出（status != completed）
+   b. 現在Phaseのタスクのみ
+   c. TodoWrite作成
+
+6. 結果表示:
+   ✅ Recovered from checkpoint for Issue #42
+   GitHub進捗: 3/8タスク (37.5%)
+   Current Phase: Phase 2 (API Implementation)
+   TodoWrite: 2タスク（Phase 2未完了分）
+
+7. 復旧完了 → Phase 1へ進む
+```
+
+### Phase 0: Context Sync
 
 ```yaml
 1. セッションコンテキスト確認:
    - Issue-TodoWriteマッピング存在？
    - 存在する → GitHub連携モード
-   - 存在しない → TodoWriteのみモード
+   - 存在しない → Phase 0.5でcheckpoint確認済み
 
 2. GitHub連携モード時の自動同期:
    a. GitHubから最新Issue取得
@@ -190,6 +236,13 @@ Phase 4: GitHub同期 (Task tool → 同期エージェント)
    ⚡ Estimated speedup: 50% (21min → 11min)
 
    このプラン表示をスキップしないでください。
+
+9. 🔴 checkpoint更新（Compact耐性・必須）:
+
+   checkpoint-manager skillで並列グループを保存:
+   - parallel_groups配列をcheckpointに追加
+   - Compact後も依存関係分析結果を復元可能
+   - write_memory("issue_{number}_checkpoint", updated_yaml)
 ```
 
 ### Phase 2: Context Analysis
@@ -243,6 +296,17 @@ Phase 4: GitHub同期 (Task tool → 同期エージェント)
     並列実行時の注意:
     - 複数タスクが同時完了 → 競合リスク
     - 解決策: Task tool経由で同期を逐次化
+
+12.5. 🔴 checkpoint更新（タスク完了時・必須）:
+
+    各タスク完了後にcheckpoint-manager skillで更新:
+    - task_mapping[i].status = "completed"
+    - progress.overall_completed++
+    - progress.percentage再計算
+    - last_updated = now()
+    - write_memory("issue_{number}_checkpoint", updated_yaml)
+
+    ⚠️ 重要: GitHub同期と並行してcheckpoint更新
 
 13. Task tool経由でGitHub同期エージェント起動:
 
@@ -390,11 +454,19 @@ fullstack: [architect, frontend, backend, security]
   - TodoWrite作成
   - Issue-TodoWriteマッピング確立
   - セッションコンテキスト保存
+  - checkpoint-manager skill: チェックポイント作成
+
+checkpoint-manager skill:
+  - Phase 0.5: Compact後の復旧
+  - Phase 1.5後: parallel_groups保存
+  - タスク完了時: status, progress更新
+  - Issue完了時: checkpoint削除
 
 progress-tracker skill:
   - /gh:start実行時にサブエージェント経由で自動起動
   - Task完了後に同期エージェント起動
   - 完了ごとにGitHub即座更新
+  - checkpoint-manager skillと連携
 ```
 
 ## Boundaries
@@ -409,10 +481,11 @@ progress-tracker skill:
 - デフォルトで最初の5タスクのみ実行（10タスク超の場合）
 
 ### Will Not Do ❌
-- Serenaメモリに進捗保存（GitHubが真実）
+- Serenaメモリに進捗保存を忘れる（checkpoint-manager skillで自動更新）
 - 同期なし作業（--no-sync除く）
 - GitHubとTodoWriteの不一致放置
 - 警告なしで大量タスクを全実行（--allフラグが必要）
+- Phase 0.5復旧をスキップ（Compact後の必須ステップ）
 
 ## 実行指示（重要）
 
@@ -422,15 +495,18 @@ progress-tracker skill:
 
 **ユーザーが明示的に指示しなくても、以下を自動的に実行してください:**
 
+0. ✅ **Phase 0.5: Checkpoint Recovery**（TodoWrite空の場合）
+   - `list_memories()` → `issue_*_checkpoint` 検索
+   - checkpoint発見時: GitHub照合 → TodoWrite再構築
 1. ✅ TodoWriteから全pendingタスクを取得
 2. ✅ タスク数チェック（>10で警告、最初の5タスクに制限）
 3. ✅ 各タスクの内容（content）を読み取る
 4. ✅ Phase 1.5で依存関係を自動分析
-5. ✅ 並列グループを作成
+5. ✅ 並列グループを作成 → **checkpoint更新**
 6. ✅ **実行プランをユーザーに表示**
-7. ✅ グループごとに実装を実行
+7. ✅ グループごとに実装を実行 → **タスク完了ごとにcheckpoint更新**
 
-**⚠️ Phase 1.5（依存関係分析）はデフォルト動作です。スキップしないでください。**
+**⚠️ Phase 0.5とPhase 1.5はデフォルト動作です。スキップしないでください。**
 
 ---
 
@@ -453,10 +529,22 @@ progress-tracker skill:
 
 ### 🔴 必須実行フロー（すべてのステップを実行）
 
-**⚠️ Phase 1.5は必須ステップです。スキップ禁止。**
+**⚠️ Phase 0.5とPhase 1.5は必須ステップです。スキップ禁止。**
 
 ```yaml
 実行順序（すべて必須）:
+
+🚨 Phase 0.5: Checkpoint Recovery（Compact耐性・最優先）🚨
+  条件: TodoWriteが空
+  ステップ:
+    1. list_memories() → "issue_*_checkpoint" フィルタ
+    2. checkpoint発見時:
+       a. read_memory("issue_{number}_checkpoint")
+       b. gh issue view {number} --json body,comments
+       c. GitHub vs checkpoint 照合（GitHubが勝つ）
+       d. TodoWrite再構築（未完了タスクのみ）
+    3. 複数checkpoint時: ユーザーに選択を促す
+    4. 復旧完了 → Phase 0へ
 
 Phase 0: GitHub同期
   - Issue-TodoWriteマッピング確認
@@ -475,6 +563,7 @@ Phase 1: タスク選択
     4. ファイル競合を検出（同一ファイル編集）
     5. 並列グループ作成
     6. 📋 実行プランをユーザーに表示（必須）
+    7. 🔴 checkpoint更新: parallel_groups保存
 
   出力例:
     📋 Parallel Execution Plan:
@@ -492,12 +581,15 @@ Phase 2: コンテキスト分析
 Phase 3: グループごとに実装
   - 並列グループ: 1メッセージで複数Task tool
   - 逐次グループ: 1つずつTask tool
+  - 🔴 各タスク完了後: checkpoint更新（status, progress）
 
 Phase 4: GitHub同期
   - 完了タスクをGitHub更新
+  - checkpoint.last_github_sync更新
 
 Phase 5: 次タスク提案
   - 残りpendingタスクを提示
+  - Phase完了時: checkpoint.current_phase更新
 ```
 
 ### 🚨 並列実行の実装（最重要）🚨
@@ -571,7 +663,8 @@ sequential_group = {tasks: [1], mode: "sequential"}
 全タスク完了後:
 1. progress-tracker skillでGitHub Issue更新
 2. チェックボックス `[x]` 変更
-3. 全タスク完了時にIssue自動クローズ
+3. checkpoint更新（各タスク完了時）
+4. 全タスク完了時にIssue自動クローズ + checkpoint削除
 
 Task tool経由でサブエージェント委譲:
 ```yaml
@@ -583,7 +676,8 @@ Task tool起動:
     2. 完了タスクカウント
     3. GitHubコメント投稿: "✅ Task <N>/<total>: <name> (<percentage>%)"
     4. チェックボックス更新
-    5. 全完了時: Issue自動クローズ
+    5. checkpoint-manager skill: タスク状態更新
+    6. 全完了時: Issue自動クローズ + checkpoint削除
 ```
 
 ## Related Commands
@@ -616,8 +710,14 @@ Task tool起動:
 
 💡 **セッション再開**: 何もせず `/gh:start` で自動同期
 💡 **即座更新**: タスク完了ごとにサブエージェントが確実実行
-💡 **役割分担**: GitHub=真実、TodoWrite=作業キュー
+💡 **役割分担**: GitHub=SSOT、Serena Memory=checkpoint、TodoWrite=作業キュー
 💡 **複数デバイスOK**: 自宅・オフィス・カフェでシームレス継続
 💡 **Issue連携必須**: `/gh:issue work` でマッピング確立
 💡 **大量タスク制御**: 10タスク超は自動的に最初の5タスクのみ実行
 💡 **Phase単位作業**: `/gh:issue work` のPhase制御と連携して効率的に作業
+💡 **Compact耐性**: Phase 0.5で自動復旧、checkpointで状態永続化
+
+---
+
+**Last Updated**: 2025-11-25
+**Version**: 1.2.0 (Compact耐性設計)
