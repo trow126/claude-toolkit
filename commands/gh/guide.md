@@ -3,6 +3,8 @@ name: gh:guide
 description: "Issue駆動開発の完全ワークフローガイド（壁打ち〜クローズまで）"
 category: workflow
 complexity: medium
+mcp-servers: []
+personas: []
 ---
 
 # Issue駆動開発ワークフローガイド
@@ -19,7 +21,7 @@ complexity: medium
 → claudedocs/brainstorm/feature_requirements_20251031.md
 
 # 2. Issueを作成
-/gh:issue create --from-file @claudedocs/brainstorm/feature_requirements_20251031.md
+/gh:issue create --from-file claudedocs/brainstorm/feature_requirements_20251031.md
 → Issue #42 作成
 
 # 3. 作業開始
@@ -103,7 +105,7 @@ Claude: 📝 要件ブリーフ生成中...
 **方法A: brainstormファイルから作成**（推奨）
 
 ```bash
-$ /gh:issue create --from-file @claudedocs/brainstorm/jwt_auth_requirements_20251031.md
+$ /gh:issue create --from-file claudedocs/brainstorm/jwt_auth_requirements_20251031.md
 ```
 
 **方法B: 既存ドキュメントから作成**
@@ -167,7 +169,7 @@ TodoWrite: Task 1.1 → completed
 → notes.md: [15:00] Task 1.1 completed
 ```
 
-**セッション終了** (Phase 2で実装予定):
+**セッション終了**:
 ```
 → セッション終了時にサマリープロンプト
 → 重要な内容を分類して保存
@@ -295,20 +297,11 @@ TodoWrite: 全タスク completed
 $ /gh:issue close 42
 ```
 
-**Phase 3で実装予定の機能**:
+**完了時の処理**:
 ```
-> ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-> 📚 Issue #42 Knowledge Extraction
->
-> Extractable knowledge:
-> ✓ Design decision: predict() unification
-> ✓ Lesson: XGBoost compatibility
->
-> Extract to:
-> → docs/architecture/pipeline_design.md
-> → docs/lessons/issue_42_lessons.md
->
-> [Yes] Extract and delete  [No] Keep files
+→ issue-retrospective skillによる振り返り
+→ GitHub Issueに完了コメント投稿
+→ claudedocs/learnings.md に知見追記
 ```
 
 ---
@@ -341,11 +334,12 @@ Issue作成 (/gh:issue create --from-file)
   ├─ 手動記録 → work/decisions.md, experiments.md
   └─ コード変更 → Git commits
   ↓
-Issue完了 (Phase 3)
-  ├─ work/ → docs/ (知識抽出)
-  ├─ work/ 削除
-  ├─ brainstorm/ 削除（任意）
-  └─ Serena更新 (コードベース理解)
+Issue完了
+  ├─ issue-retrospective (振り返り)
+  ├─ GitHub Issue完了コメント
+  ├─ claudedocs/learnings.md (知見追記)
+  ├─ brainstorm/ 削除（自動）
+  └─ Issue自動クローズ
 ```
 
 ---
@@ -483,7 +477,7 @@ $ /gh:brainstorm
   → 対話的に要件整理
   → claudedocs/brainstorm/jwt_auth_requirements_20251031.md
 
-$ /gh:issue create --from-file @claudedocs/brainstorm/jwt_auth_requirements_20251031.md
+$ /gh:issue create --from-file claudedocs/brainstorm/jwt_auth_requirements_20251031.md
   → Issue #45 created
 
 $ /gh:issue work 45
@@ -510,7 +504,7 @@ $ /gh:brainstorm
   → 対話的に要件整理
   → claudedocs/brainstorm/pipeline_commonization_requirements_20251031.md
 
-$ /gh:issue create --from-file @claudedocs/brainstorm/pipeline_commonization_requirements_20251031.md
+$ /gh:issue create --from-file claudedocs/brainstorm/pipeline_commonization_requirements_20251031.md
   → Issue #42 created (3 tasks)
 
 # Day 2: 並列実装
@@ -557,5 +551,5 @@ $ /gh:issue work 42
 
 ---
 
-**Last Updated**: 2025-10-31
-**Version**: 1.0.0
+**Last Updated**: 2025-11-25
+**Version**: 1.1.0

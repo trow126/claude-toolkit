@@ -298,7 +298,7 @@ Claude: 🚀 **Phase 5: Handoff**
 ✅ Saved: claudedocs/brainstorm/jwt_auth_requirements_20251031.md
 
 Next steps:
-$ /gh:issue create --from-file @claudedocs/brainstorm/jwt_auth_requirements_20251031.md
+$ /gh:issue create --from-file claudedocs/brainstorm/jwt_auth_requirements_20251031.md
 ```
 
 ### Example 2: Agile Refactoring Exploration
@@ -407,7 +407,7 @@ $ /gh:brainstorm
 
 **Step 2: Create Issue (separate command)**
 ```bash
-$ /gh:issue create --from-file @claudedocs/brainstorm/feature_requirements_20251031.md
+$ /gh:issue create --from-file claudedocs/brainstorm/feature_requirements_20251031.md
 → GitHub Issue #42 created
 ```
 
@@ -568,7 +568,7 @@ Cons: Security risks, maintenance burden
 $ ls claudedocs/brainstorm/
 
 # Use absolute path
-$ /gh:issue create --from-file @$HOME/project/claudedocs/brainstorm/feature_requirements_20251031.md
+$ /gh:issue create --from-file claudedocs/brainstorm/feature_requirements_20251031.md
 ```
 
 ---
@@ -585,5 +585,18 @@ $ /gh:issue create --from-file @$HOME/project/claudedocs/brainstorm/feature_requ
 
 ---
 
-**Last Updated**: 2025-10-31
-**Version**: 1.0.0
+## 関連コマンド
+
+| コマンド | 用途 | 使い分け |
+|---------|------|---------|
+| `/gh:brainstorm` | GitHub Issue作成向け要件整理 | **このコマンド** |
+| `/sc:brainstorm` | 汎用要件発見 | GitHub Issue以外のプロジェクト向け |
+| `/gh:issue create` | Issue作成 | brainstormファイル準備後 |
+| `/gh:issue work` | 作業開始 | Issue作成後 |
+| `/gh:guide` | ワークフローガイド | 全体フロー理解 |
+| `/gh:usage` | ユースケース集 | 効率的な使い方 |
+
+---
+
+**Last Updated**: 2025-11-25
+**Version**: 1.1.0
