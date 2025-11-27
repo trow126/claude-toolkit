@@ -52,5 +52,5 @@
     "command": "~/.claude/statusline.js"
   },
   "outputStyle": "ojosama",
-  "alwaysThinkingEnabled": false
+  "alwaysThinkingEnabled": true
 }
