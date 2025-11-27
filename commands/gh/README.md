@@ -75,6 +75,14 @@
 | `/gh:guide` | ワークフロー完全ガイド | `guide` |
 | `/gh:usage` | ユースケース集 | `usage` |
 
+### ログ分析・検証
+
+| コマンド | 用途 | 例 |
+|---------|------|-----|
+| `/gh:verify <path>` | ログ分析・検証 | `verify /var/log/app.log --mode verify` |
+| `/gh:verify --mode detect` | 異常検出 | `verify /var/log/app.log --mode detect` |
+| `/gh:verify --mode debug` | デバッグ支援 | `verify /var/log/error.log --issue 42` |
+
 ## 詳細ドキュメント
 
 **コマンド詳細**: 各コマンドの全オプションとフラグ
@@ -91,6 +99,7 @@
 - **issue-todowrite-sync**: `.claude/skills/issue-todowrite-sync/SKILL.md`
 - **progress-tracker**: `.claude/skills/progress-tracker/SKILL.md`
 - **issue-retrospective**: `.claude/skills/issue-retrospective/SKILL.md`
+- **log-verifier**: `.claude/skills/log-verifier/SKILL.md`
 
 ## アーキテクチャ概要
 
@@ -204,16 +213,18 @@ gh auth status  # 確認
 │   ├── issue.md (コマンド実装)
 │   ├── guide.md (詳細ガイド)
 │   ├── usage.md (ユースケース)
-│   └── brainstorm.md (壁打ちコマンド)
+│   ├── brainstorm.md (壁打ちコマンド)
+│   └── verify.md (ログ分析コマンド)
 │
 └── skills/
     ├── issue-parser/
     ├── issue-todowrite-sync/
     ├── progress-tracker/
-    └── issue-retrospective/
+    ├── issue-retrospective/
+    └── log-verifier/
 ```
 
 ---
 
-**バージョン**: 1.1.0
-**最終更新**: 2025-11-25
+**バージョン**: 1.2.0
+**最終更新**: 2025-11-27
