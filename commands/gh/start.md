@@ -100,15 +100,28 @@ Phase 4: GitHub同期 (Task tool → 同期エージェント)
 
     どのIssueを続行しますか？"
 
+3.5. explore_results復元（v1.1・Compact耐性）:
+   checkpointにexplore_resultsが存在する場合:
+   a. explore_results読み取り
+   b. Phase 2のExplore並列実行をスキップ
+   c. 保存済みパターン・ファイル・推奨事項を再利用
+   d. ログ: "✅ Restored explore_results from checkpoint (skipping Phase 2 Explore)"
+
+   → Compact後もPhase 2 Exploreを再実行せず、即座に実装フェーズへ
+
 4. GitHub照合（SSOT）:
    a. gh issue view <number> --json body,comments
    b. チェックボックス状態を解析
    c. GitHub状態 vs checkpoint → GitHubが勝つ
    d. 不一致があれば checkpoint を更新
 
-5. TodoWrite再構築:
-   a. 未完了タスクのみ抽出（status != completed）
-   b. 現在Phaseのタスクのみ
+5. TodoWrite再構築（v1.1強化）:
+   a. todowrite_snapshotが存在する場合（v1.1）:
+      - snapshotからTodoWrite状態を直接復元
+      - activeForm含む完全な状態復旧
+   b. snapshotなし（v1.0互換）:
+      - task_mappingから未完了タスク抽出（status != completed）
+      - 現在Phaseのタスクのみ
    c. TodoWrite作成
 
 6. 結果表示:
@@ -207,17 +220,19 @@ Phase 4: GitHub同期 (Task tool → 同期エージェント)
    current_group = {tasks: [], mode: "parallel"}
 
    for task in sorted_by_layer:
-     if has_dependency(task):
-       # 依存あり → 新グループ作成
+     if has_dependency(task) OR has_file_conflict(task, current_group):
+       # 依存あり OR ファイル競合 → 新グループ作成
        groups.append(current_group)
        current_group = {tasks: [task], mode: "sequential"}
      else:
-       # 依存なし → 現グループに追加（最大3タスク）
-       if len(current_group.tasks) < 3:
-         current_group.tasks.append(task)
-       else:
-         groups.append(current_group)
-         current_group = {tasks: [task], mode: "parallel"}
+       # 依存なし・ファイル競合なし → 現グループに追加（制限なし）
+       # Claude Codeが動的に最大10並列まで自動バッチング
+       current_group.tasks.append(task)
+
+   # ⚠️ 大規模グループ警告（10タスク超）
+   for group in groups:
+     if len(group.tasks) > 10:
+       warn("Group has >10 tasks. Claude Code auto-batches max 10 concurrent.")
 
    groups.append(current_group)
 
@@ -245,14 +260,68 @@ Phase 4: GitHub同期 (Task tool → 同期エージェント)
    - write_memory("issue_{number}_checkpoint", updated_yaml)
 ```
 
-### Phase 2: Context Analysis
+### Phase 2: Context Analysis（Parallel Explore）
 
 ```yaml
-9. 各タスクの解析:
-   - フレームワーク検出
-   - ドメイン分類（frontend/backend/fullstack）
-   - ペルソナ自動選択
-   - MCPサーバー決定
+9. タスクをドメイン別に分類:
+   backend_tasks: API, endpoint, service, controller キーワード
+   database_tasks: database, schema, migration, model キーワード
+   frontend_tasks: UI, component, page, view キーワード
+
+10. ドメイン別Exploreサブエージェントを並列起動:
+
+    ⚠️ 1メッセージ内で複数Task tool呼び出し（真の並列実行）
+
+    # モデル自動判定ロジック:
+    if task_count <= 5 AND single_domain:
+      model = "haiku"  # 軽量・高速
+    else:
+      model = "sonnet"  # 複雑タスク対応
+
+    # 並列Explore起動（ドメインが存在する場合のみ）
+    Task(
+      subagent_type: "Explore",
+      model: auto,  # 上記ロジックで判定
+      prompt: "Analyze {domain} layer patterns for implementation:
+               - Existing patterns and conventions
+               - Related files to modify
+               - Recommended approach based on codebase"
+    )
+
+    例（3ドメイン並列）:
+    単一メッセージ内で:
+      - Task tool #1: backend Explore
+      - Task tool #2: database Explore
+      - Task tool #3: frontend Explore
+      ↓
+    Claude Codeが3つを同時実行 ⚡
+
+11. Explore結果をcheckpointに保存（Compact耐性）:
+
+    checkpoint-manager skill起動:
+    update_explore_results(checkpoint_yaml, {
+      backend: {
+        patterns: ["REST API", "Express middleware"],
+        files: ["src/api/routes.ts", "src/middleware/auth.ts"],
+        recommendations: "Use existing auth middleware pattern"
+      },
+      database: {
+        patterns: ["Prisma ORM", "PostgreSQL"],
+        files: ["prisma/schema.prisma"],
+        recommendations: "Extend User model with fields"
+      },
+      frontend: {
+        patterns: ["React", "TailwindCSS"],
+        files: ["src/components/Auth/"],
+        recommendations: "Follow existing form component pattern"
+      }
+    })
+
+    → Compact後も再実行不要、explore_resultsから復元
+
+12. フレームワーク検出、ペルソナ自動選択、MCPサーバー決定
+
+オプション: --no-explore でPhase 2のExplore並列実行をスキップ可能
 ```
 
 ### Phase 3: Implementation（並列実行の実装）
@@ -430,6 +499,7 @@ fullstack: [architect, frontend, backend, security]
 --parallel           # 強制並列（依存関係分析スキップ）
 --all                # 全pendingタスク実行（10タスク超でも実行）
 --no-sync            # 自動同期スキップ（非推奨）
+--no-explore         # Phase 2のExplore並列実行スキップ（高速化）
 ```
 
 ## Error Handling
@@ -654,9 +724,12 @@ sequential_group = {tasks: [1], mode: "sequential"}
 ### 実行プラン生成
 
 1. 依存関係のないタスク収集
-2. 最大3タスクまで並列グループ化
-3. 依存タスクは別グループ配置
-4. 繰り返し
+2. ファイル競合チェック（同一ファイル編集 → 別グループ）
+3. 並列グループ化（制限なし・Claude Code自動バッチング最大10）
+4. 依存タスクは別グループ配置
+5. 繰り返し
+
+⚠️ 10タスク超のグループは警告表示
 
 ### Phase 4: GitHub同期詳細
 
@@ -719,5 +792,5 @@ Task tool起動:
 
 ---
 
-**Last Updated**: 2025-11-25
-**Version**: 1.2.0 (Compact耐性設計)
+**Last Updated**: 2025-11-28
+**Version**: 1.3.0 (Parallel Explore + 制限撤廃 + v1.1 Checkpoint)
