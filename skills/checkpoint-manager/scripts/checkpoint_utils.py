@@ -11,13 +11,20 @@ import sys
 from datetime import datetime, timezone
 
 
-def generate_checkpoint(issue_data: dict, todowrite_mapping: list) -> str:
+def generate_checkpoint(
+    issue_data: dict,
+    todowrite_mapping: list,
+    todowrite_snapshot: list = None,
+    explore_results: dict = None
+) -> str:
     """
     Generate checkpoint YAML from Issue data and TodoWrite mapping.
 
     Args:
         issue_data: Parsed Issue data from issue-parser
         todowrite_mapping: Task mapping from issue-todowrite-sync
+        todowrite_snapshot: Optional TodoWrite state for Compact recovery (v1.1)
+        explore_results: Optional Phase 2 Explore results (v1.1)
 
     Returns:
         YAML-formatted checkpoint string
@@ -74,7 +81,31 @@ last_github_sync: "{now}"
 # Configuration
 auto_close_enabled: {str(issue_data.get('auto_close', True)).lower()}
 recovery_hint: "Start with first pending task in {current_phase}"
+
+# Schema Version (for backward compatibility)
+schema_version: "1.1.0"
 """
+
+    # Add TodoWrite Snapshot (v1.1)
+    if todowrite_snapshot:
+        checkpoint += _format_todowrite_snapshot(todowrite_snapshot)
+
+    # Add Recovery Command (v1.1)
+    checkpoint += '\n# Recovery Command\nrecovery_command: "/gh:start  # Auto-recovers from checkpoint"\n'
+
+    # Add Explore Results (v1.1)
+    if explore_results:
+        checkpoint += _format_explore_results(explore_results)
+
+    # Add Execution Stats placeholder (v1.1)
+    checkpoint += """
+# Execution Stats
+execution_stats:
+  phase_1_5_duration_ms: 0
+  parallel_groups_count: 0
+  estimated_speedup_percent: 0
+"""
+
     return checkpoint
 
 
@@ -83,6 +114,37 @@ def _format_list(items: list) -> str:
     if not items:
         return "  []"
     return "\n".join(f'  - "{item}"' for item in items)
+
+
+def _format_todowrite_snapshot(snapshot: list) -> str:
+    """Format TodoWrite snapshot as YAML (v1.1)."""
+    if not snapshot:
+        return ""
+
+    lines = ["\n# TodoWrite Snapshot (Compact recovery)", "todowrite_snapshot:"]
+    for item in snapshot:
+        lines.append(f"  - index: {item.get('index', 0)}")
+        lines.append(f'    content: "{item.get("content", "")}"')
+        lines.append(f"    status: {item.get('status', 'pending')}")
+        lines.append(f'    activeForm: "{item.get("activeForm", "")}"')
+    return "\n".join(lines) + "\n"
+
+
+def _format_explore_results(results: dict) -> str:
+    """Format Phase 2 Explore results as YAML (v1.1)."""
+    if not results:
+        return ""
+
+    lines = ["\n# Phase 2 Explore Results", "explore_results:"]
+    for domain, data in results.items():
+        lines.append(f"  {domain}:")
+        patterns = data.get("patterns", [])
+        lines.append(f"    patterns: {patterns}")
+        files = data.get("files", [])
+        lines.append(f"    files: {files}")
+        rec = data.get("recommendations", "")
+        lines.append(f'    recommendations: "{rec}"')
+    return "\n".join(lines) + "\n"
 
 
 def _format_task_mapping(mapping: list) -> str:
@@ -223,7 +285,13 @@ def parse_checkpoint(checkpoint_yaml: str) -> dict:
         "current_phase": "",
         "task_mapping": [],
         "parallel_groups": [],
-        "progress": {}
+        "progress": {},
+        # v1.1 fields
+        "schema_version": "1.0.0",
+        "todowrite_snapshot": [],
+        "recovery_command": "",
+        "explore_results": {},
+        "execution_stats": {}
     }
 
     lines = checkpoint_yaml.split("\n")
@@ -242,8 +310,77 @@ def parse_checkpoint(checkpoint_yaml: str) -> dict:
             result["progress"]["overall_total"] = int(line.split(":")[1].strip())
         elif line.startswith("percentage:"):
             result["progress"]["percentage"] = float(line.split(":")[1].strip())
+        # v1.1 fields
+        elif line.startswith("schema_version:"):
+            result["schema_version"] = line.split(":", 1)[1].strip().strip('"')
+        elif line.startswith("recovery_command:"):
+            result["recovery_command"] = line.split(":", 1)[1].strip().strip('"')
 
     return result
+
+
+def update_explore_results(checkpoint_yaml: str, explore_results: dict) -> str:
+    """
+    Update or add explore_results in checkpoint YAML (v1.1).
+
+    Args:
+        checkpoint_yaml: Current checkpoint YAML string
+        explore_results: Dict with backend/database/frontend results
+
+    Returns:
+        Updated YAML string
+    """
+    lines = checkpoint_yaml.split("\n")
+
+    # Find existing explore_results section
+    start_idx = None
+    end_idx = None
+
+    for i, line in enumerate(lines):
+        if line.startswith("explore_results:"):
+            start_idx = i
+        elif start_idx is not None and not line.startswith(" ") and line.strip() and not line.startswith("#"):
+            end_idx = i
+            break
+
+    # Build new section
+    new_section = _format_explore_results(explore_results).strip().split("\n")
+
+    if start_idx is not None:
+        if end_idx is None:
+            end_idx = len(lines)
+        lines = lines[:start_idx] + new_section + lines[end_idx:]
+    else:
+        # Append at end
+        lines.extend([""] + new_section)
+
+    lines = _update_timestamp(lines)
+    return "\n".join(lines)
+
+
+def update_execution_stats(checkpoint_yaml: str, stats: dict) -> str:
+    """
+    Update execution_stats in checkpoint YAML (v1.1).
+
+    Args:
+        checkpoint_yaml: Current checkpoint YAML string
+        stats: Dict with phase_1_5_duration_ms, parallel_groups_count, estimated_speedup_percent
+
+    Returns:
+        Updated YAML string
+    """
+    lines = checkpoint_yaml.split("\n")
+
+    for i, line in enumerate(lines):
+        if "phase_1_5_duration_ms:" in line:
+            lines[i] = f"  phase_1_5_duration_ms: {stats.get('phase_1_5_duration_ms', 0)}"
+        elif "parallel_groups_count:" in line:
+            lines[i] = f"  parallel_groups_count: {stats.get('parallel_groups_count', 0)}"
+        elif "estimated_speedup_percent:" in line:
+            lines[i] = f"  estimated_speedup_percent: {stats.get('estimated_speedup_percent', 0)}"
+
+    lines = _update_timestamp(lines)
+    return "\n".join(lines)
 
 
 if __name__ == "__main__":
@@ -274,10 +411,23 @@ if __name__ == "__main__":
             checkpoint = sys.stdin.read()
             print(json.dumps(parse_checkpoint(checkpoint)))
 
+        # v1.1 commands
+        elif command == "update_explore":
+            input_data = json.load(sys.stdin)
+            checkpoint = input_data.get("checkpoint", "")
+            explore_results = input_data.get("explore_results", {})
+            print(update_explore_results(checkpoint, explore_results))
+
+        elif command == "update_stats":
+            input_data = json.load(sys.stdin)
+            checkpoint = input_data.get("checkpoint", "")
+            stats = input_data.get("stats", {})
+            print(update_execution_stats(checkpoint, stats))
+
         else:
             print(f"Unknown command: {command}", file=sys.stderr)
             sys.exit(1)
     else:
         print("Usage: checkpoint_utils.py <command>", file=sys.stderr)
-        print("Commands: generate, update_task, update_groups, parse", file=sys.stderr)
+        print("Commands: generate, update_task, update_groups, parse, update_explore, update_stats", file=sys.stderr)
         sys.exit(1)

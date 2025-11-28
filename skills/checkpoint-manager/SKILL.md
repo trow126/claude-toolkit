@@ -79,6 +79,44 @@ last_github_sync: "2025-11-25T14:30:00"
 # Configuration
 auto_close_enabled: true
 recovery_hint: "Continue with login endpoint implementation"
+
+# Schema Version (for backward compatibility)
+schema_version: "1.1.0"
+
+# TodoWrite Snapshot（Compact復旧用・v1.1追加）
+todowrite_snapshot:
+  - index: 0
+    content: "Implement login endpoint"
+    status: pending
+    activeForm: "Implementing login endpoint"
+  - index: 1
+    content: "Implement logout endpoint"
+    status: completed
+    activeForm: "Implementing logout endpoint"
+
+# Recovery Command（v1.1追加）
+recovery_command: "/gh:start  # Auto-recovers from checkpoint"
+
+# Phase 2 Explore Results（再実行回避・v1.1追加）
+explore_results:
+  backend:
+    patterns: ["REST API", "Express middleware"]
+    files: ["src/api/routes.ts", "src/middleware/auth.ts"]
+    recommendations: "Use existing auth middleware pattern"
+  database:
+    patterns: ["Prisma ORM", "PostgreSQL"]
+    files: ["prisma/schema.prisma"]
+    recommendations: "Extend User model with fields"
+  frontend:
+    patterns: ["React", "TailwindCSS"]
+    files: ["src/components/Auth/"]
+    recommendations: "Follow existing form component pattern"
+
+# Execution Stats（v1.1追加）
+execution_stats:
+  phase_1_5_duration_ms: 1500
+  parallel_groups_count: 3
+  estimated_speedup_percent: 45
 ```
 
 ## When to Use
