@@ -7,7 +7,7 @@
 **シンプルなワークフロー**:
 1. **壁打ち → Issue化**: `/gh:brainstorm`で要件整理 → `/gh:issue create`でGitHub Issue作成
 2. **作業開始・継続**: `/gh:start 42`で作業開始、セッション再開も自動
-3. **自動進捗同期**: TodoWrite完了 → GitHub自動更新 → 全完了でIssue自動クローズ
+3. **自動進捗同期**: TodoWrite完了 → GitHub自動更新 → 全完了でPR作成提案
 
 **なぜ使うか**:
 - Issue駆動開発を自然な会話フローで実現
@@ -144,7 +144,14 @@ Serena Memory (checkpoint)
 # Session 2（翌日・別マシン）
 /gh:start                          # checkpoint自動復元
 # → Task 3, 4, 5 完了
-# → 全完了 → Issue自動クローズ ✅
+# → 全完了 → PR作成を提案
+
+# PR作成・レビュー
+gh pr create --body "Closes #42"   # CodeRabbitレビュー
+# レビュー対応 → マージ → Issue自動クローズ ✅
+
+# 振り返り
+/gh:issue close 42                 # checkpoint削除・learnings記録
 ```
 
 ### Compact耐性
@@ -214,5 +221,5 @@ gh auth status  # 確認
 
 ---
 
-**バージョン**: 2.1.0 (統合コマンド体系)
-**最終更新**: 2025-12-05
+**バージョン**: 2.2.0 (PR経由クローズ)
+**最終更新**: 2025-12-16
