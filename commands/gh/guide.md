@@ -24,13 +24,11 @@ personas: []
 /gh:issue create --from-file claudedocs/brainstorm/feature_requirements_20251031.md
 → Issue #42 作成
 
-# 3. 作業開始
-/gh:issue work 42
+# 3. 作業開始（Issue読み込み + 実装）
+/gh:start 42
+→ TodoWrite生成 → 依存分析 → 実装開始
 
-# 4. 実装（自動記録される）
-(作業を進める)
-
-# 5. 完了（自動的にクローズ）
+# 4. 完了（自動的にクローズ）
 (全タスク完了時)
 ```
 
@@ -131,28 +129,30 @@ $ /gh:issue create
 ### Phase 3: 作業開始
 
 ```bash
-$ /gh:issue work 42
+$ /gh:start 42
 ```
 
 **自動実行される処理**:
 
-1. **Work file作成** (`claudedocs/work/`):
-   ```
-   ✓ issue_42_context.md      # Issue概要
-   ✓ issue_42_experiments.md  # 実験結果
-   ✓ issue_42_decisions.md    # 設計判断
-   ✓ issue_42_notes.md        # 作業ログ
-   ```
+1. **Issue読み込み**:
+   - `gh issue view 42 --json body,comments,state`
+   - issue-parser skill でタスク抽出
 
 2. **TodoWrite同期**:
    - GitHubのタスクリスト → TodoWriteに変換
-   - セッション内で進捗管理
+   - 完了済み ([x]) は自動除外
+   - スマートデフォルト適用（8+ タスク → Phase単位）
 
-3. **セッション開始記録**:
-   ```markdown
-   ## [2025-10-31 13:00] Session 1 started
-   **Starting task**: Task 1.1
-   ```
+3. **checkpoint作成**:
+   - Serena Memoryに保存（Compact耐性）
+   - セッション再開時に自動復元
+
+4. **GitHub Projects更新**:
+   - ステータス → "In Progress"
+
+5. **依存分析 → 実装開始**:
+   - 依存関係分析 → 並列実行プラン表示
+   - 実装開始
 
 ---
 
@@ -244,7 +244,7 @@ $ /sc:task "Issue #42のTask 1.1を実装
 #### パターンA: 1セッション完結（推奨）
 
 ```bash
-$ /gh:issue work 42
+$ /gh:start 42
 (全タスクを完了)
 → 自動的にIssue更新・クローズ
 ```
@@ -255,27 +255,25 @@ $ /gh:issue work 42
 
 **Day 1**:
 ```bash
-$ /gh:issue work 42
+$ /gh:start 42
 (Task 1.1, 1.2を完了)
 # セッション終了
 ```
 
 **Day 2**:
 ```bash
-$ /gh:issue work 42  # 再実行
+$ /gh:start  # checkpoint自動復元
+→ checkpoint検出
 → GitHubから最新状態を取得
-→ 既存work/ファイルを読み込み
 → 前回の続きから作業
 ```
 
 **表示内容**:
 ```
 > Resuming work on Issue #42
-> Last session: 2025-10-30 16:00
+> Checkpoint found: issue_42_checkpoint
 > Progress: Task 1.1, 1.2 completed (2/3)
 > Next: Task 1.3
->
-> Work files: claudedocs/work/issue_42_*.md
 ```
 
 ---
@@ -325,20 +323,26 @@ $ /gh:issue close 42
 壁打ち (/gh:brainstorm)
   ↓ claudedocs/brainstorm/*.md (一時ファイル)
 Issue作成 (/gh:issue create --from-file)
-  ↓ GitHub Issue (永続)
-作業開始 (/gh:issue work)
-  ↓ work/ (一時) + TodoWrite (揮発)
+  ↓ GitHub Issue (永続・SSOT)
+作業開始 (/gh:start 42)
+  ├─ Issue読み込み → TodoWrite (揮発)
+  ├─ checkpoint → Serena Memory (Compact耐性)
+  └─ GitHub Projects → "In Progress"
   ↓
 実装作業
-  ├─ 自動記録 → work/notes.md
-  ├─ 手動記録 → work/decisions.md, experiments.md
+  ├─ TodoWrite完了 → GitHub自動更新
   └─ コード変更 → Git commits
   ↓
-Issue完了
+セッション再開 (/gh:start)
+  ├─ checkpoint復元
+  └─ GitHub照合 → TodoWrite再構築
+  ↓
+Issue完了 (/gh:issue close または自動)
   ├─ issue-retrospective (振り返り)
   ├─ GitHub Issue完了コメント
   ├─ claudedocs/learnings.md (知見追記)
   ├─ brainstorm/ 削除（自動）
+  ├─ checkpoint削除
   └─ Issue自動クローズ
 ```
 
@@ -352,8 +356,9 @@ Issue完了
 |---------|------|-----|
 | `/gh:brainstorm` | 要件整理 | アイデアから要件を抽出 |
 | `/gh:issue create` | Issue作成 | `--from-file` でbrainstormファイルから作成 |
-| `/gh:issue work N` | 作業開始 | Work file作成、TodoWrite同期 |
 | `/gh:issue close N` | 手動クローズ | Issue完了処理 |
+| `/gh:start 42` | 作業開始 | Issue読み込み + TodoWrite + 実装 |
+| `/gh:start` | 作業再開 | checkpoint自動復元 |
 
 ### 効率化コマンド
 
@@ -375,23 +380,23 @@ Issue完了
 
 ## ⚠️ トラブルシューティング
 
-### Work fileが作成されない
+### `/gh:start`でエラーが出る
 
-**問題**: `/gh:issue work 42` を実行してもファイルができない
+**問題**: checkpointが見つからない
 
 **解決策**:
-1. `issue-work-logger` スキルが存在するか確認
-2. `claudedocs/work/` ディレクトリが存在するか確認
-3. GitHub Issue #42 が存在するか確認
+```bash
+$ /gh:start 42  # Issue番号を明示的に指定
+```
 
 ### TodoWriteと同期しない
 
 **問題**: タスク変更がIssueに反映されない
 
 **解決策**:
-1. `issue-todowrite-sync` スキルが有効か確認
+1. `progress-tracker` スキルが有効か確認
 2. セッション内でTodoWriteを使用しているか確認
-3. `progress-tracker` スキルが有効か確認
+3. `gh issue view 42` で手動確認
 
 ### セッション再開時に状態が失われる
 
@@ -399,27 +404,39 @@ Issue完了
 
 **理由**:
 - TodoWrite = セッション揮発（これは仕様）
-- work/ = ファイルで永続
+- checkpoint = Serena Memoryで永続（Compact耐性）
 - GitHub Issue = Single Source of Truth
 
 **対処**:
 ```bash
-$ /gh:issue work 42  # 再実行でGitHubから最新状態を取得
+$ /gh:start  # checkpoint自動復元
+# または
+$ /gh:start 42  # Issue番号を明示的に指定
+```
+
+### 複数のアクティブIssueがある
+
+**問題**: `/gh:start` で複数のcheckpointが検出された
+
+**解決策**:
+```bash
+$ /gh:start 42  # 作業したいIssue番号を指定
 ```
 
 ### Serenaメモリが混乱している
 
-**問題**: タスク状態やIssue情報がSerenaに残っている
+**問題**: checkpointやIssue情報がSerenaに残っている
 
 **解決策**:
 ```bash
 $ /serena:reset
-# 「タスク状態に関するSerenaメモリを全て削除して」
+# 「issue_*_checkpointを全て削除して」
 ```
 
 **正しいSerenaの使い方**:
 - ✅ コードベース理解（アーキテクチャ、パターン）
-- ❌ タスク状態、Issue情報
+- ✅ checkpoint（Issue作業状態の永続化）
+- ❌ 手動でのタスク状態管理（自動に任せる）
 
 ---
 
@@ -480,19 +497,17 @@ $ /gh:brainstorm
 $ /gh:issue create --from-file claudedocs/brainstorm/jwt_auth_requirements_20251031.md
   → Issue #45 created
 
-$ /gh:issue work 45
-  → work/issue_45_*.md created
-  → TodoWrite: 3 tasks loaded
+$ /gh:start 45
+  → Issue読み込み → TodoWrite: 3 tasks loaded
+  → 依存分析 → 並列実行プラン表示
+  → 実装開始
 
 # Task 1.1: JWT middleware実装
-(作業中 - 自動記録される)
-
-# 設計判断を記録
-"jose ライブラリを選んだ理由をIssue 45に記録：
- Native ESM対応、型安全、アクティブメンテナンス"
+(作業中 - 完了ごとにGitHub自動更新)
 
 # Task 1.2, 1.3も完了
 → 自動的にIssue #45 クローズ
+→ 振り返り → claudedocs/learnings.md
 ```
 
 ### 例2: 複雑なリファクタリング（並列実装）
@@ -508,16 +523,13 @@ $ /gh:issue create --from-file claudedocs/brainstorm/pipeline_commonization_requ
   → Issue #42 created (3 tasks)
 
 # Day 2: 並列実装
-$ /sc:spawn "Issue #42の3タスクを並列実装:
-- Task 1.1: predict_gbdt() 統一
-- Task 1.2: BaseTrainer 共通化
-- Task 1.3: CSV dtype統一
+$ /gh:start 42
+  → Issue読み込み → TodoWrite: 3 tasks
+  → 依存分析:
+    Group 1 (parallel): Task 1,2 ⚡
+    Group 2 (sequential): Task 3
 
-Serenaでコードベース理解してから
-サブエージェントで並列実行して"
-
-→ 3つのサブエージェントが並列作業
-→ 9時間 → 4時間（55%短縮）
+→ 並列実行で高速化
 → 自動的にIssue #42 クローズ
 ```
 
@@ -525,12 +537,13 @@ Serenaでコードベース理解してから
 
 ```bash
 # Day 1
-$ /gh:issue work 42
+$ /gh:start 42
 (Task 1.1, 1.2完了)
-# セッション終了
+# セッション終了（checkpoint自動保存）
 
 # Day 2
-$ /gh:issue work 42
+$ /gh:start
+> Checkpoint found: issue_42_checkpoint
 > Resuming work on Issue #42
 > Progress: 2/3 tasks completed
 > Next: Task 1.3
@@ -551,5 +564,5 @@ $ /gh:issue work 42
 
 ---
 
-**Last Updated**: 2025-11-25
-**Version**: 1.1.0
+**Last Updated**: 2025-12-05
+**Version**: 2.0.0

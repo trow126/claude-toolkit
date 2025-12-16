@@ -1,47 +1,52 @@
 ---
 name: gh:start
-description: TodoWriteタスクを自動並列判断で実装。Phase 1.5（依存関係分析）は必須ステップ。並列実行プランを表示後、最適化された並列実行を自動実行。GitHub Issue自動同期でセッション間の作業継続性を保証。
+description: GitHub Issue駆動開発の統合エントリーポイント。Issue読み込み・タスク変換・依存分析・並列実装・進捗同期を一貫して実行。セッション間の作業継続性を保証。
 category: workflow
 complexity: standard
 mcp-servers: [sequential, context7, magic, playwright, morphllm, serena]
 personas: [architect, frontend, backend, security, qa-specialist]
 ---
 
-# /gh:start - TodoWriteタスク実装開始
+# /gh:start - GitHub Issue駆動開発の統合コマンド
 
 > **核心**: GitHub Issue = 永続化層（SSOT）、Serena Memory = チェックポイント、TodoWrite = セッション内キュー
 
 ## Triggers
-- TodoWriteタスク作成後の実装開始
-- GitHub Issue workフロー後の実装作業
+- GitHub Issueでの作業開始（初回）
 - セッション再開時の作業継続
+- checkpoint からの自動復旧
 
 ## Usage
 
 ```bash
-# デフォルト（推奨・自動並列判断）
-/gh:start
+# Issue番号を指定して作業開始（推奨）
+/gh:start 42
 
 → 自動実行される処理:
-  1. TodoWriteから全pendingタスク取得
-  2. タスク内容を読み取り
-  3. 依存関係を自動分析（Phase 1.5必須）
-  4. 並列グループ作成
-  5. 実行プランを表示 📋
-  6. 並列可能タスクを並列実行 ⚡
+  1. Issue #42 を GitHub から取得
+  2. タスクを解析・TodoWrite に変換
+  3. checkpoint を作成
+  4. 依存関係を自動分析（Phase 1.5必須）
+  5. 並列グループ作成
+  6. 実行プランを表示 📋
+  7. 並列可能タスクを並列実行 ⚡
 
-# 特定タスクのみ実行（依存関係分析は実行される）
-/gh:start 2,3
+# セッション再開（checkpoint自動復元）
+/gh:start
+→ checkpoint検索 → 自動復元 → 作業継続
+
+# 特定タスクのみ実行
+/gh:start 42 --tasks 2,3
 → 指定タスク間の依存関係を分析
 → プラン表示 → 並列実行
 
 # 強制並列（依存関係分析スキップ・⚠️リスクあり）
-/gh:start 1,2,3 --parallel
+/gh:start 42 --parallel
 → Phase 1.5スキップ
 → すべて強制的に並列実行
 
 # 全タスク実行（10タスク超の場合）
-/gh:start --all
+/gh:start 42 --all
 → タスク数制限を無視
 → 全pendingタスクを実行
 ```
@@ -69,92 +74,131 @@ Phase 3: Task実装 (Task tool → 実装エージェント)
 Phase 4: GitHub同期 (Task tool → 同期エージェント)
   - progress-tracker skill起動
   - GitHub Issue更新
-  - 自動クローズ（全完了時）
+  - 全完了時はPR作成を提案（PRマージでIssue自動クローズ）
 ```
 
 ## Behavioral Flow
 
-### Phase 0.5: Checkpoint Recovery（Compact耐性・最重要）
+### Phase 0: Issue Load & Context Sync（統合エントリーポイント）
 
-**🚨 このフェーズはCompact後の復旧を担当します。必ず最初に実行してください。**
+**🚨 このフェーズは必ず最初に実行してください。**
 
 ```yaml
-条件: TodoWriteが空 AND Serena Memoryにcheckpointが存在
+条件分岐:
 
-1. チェックポイント検索:
+═══════════════════════════════════════════════════════════════
+A) Issue番号が引数で指定された場合 (/gh:start 42)
+═══════════════════════════════════════════════════════════════
+
+1. GitHub から Issue 取得:
+   gh issue view 42 --json body,comments,state,title
+
+2. Issue 状態確認:
+   - closed → エラー「Issue #42 は既にクローズ済みです」
+   - open → 続行
+
+3. 既存 checkpoint 確認:
+   list_memories() → "issue_42_checkpoint" 検索
+
+   3a. checkpoint 存在 → 復元モード:
+       - read_memory("issue_42_checkpoint")
+       - GitHub照合（GitHubが勝つ）
+       - TodoWrite再構築
+       - explore_results復元（あれば）
+       - ログ: "✅ Resumed Issue #42 from checkpoint"
+
+   3b. checkpoint 不在 → 新規モード:
+       続行（下記 4-8）
+
+4. issue-parser skill 呼び出し:
+   Issue本文 + コメントからタスク抽出
+   - フェーズ構造の検出
+   - チェックボックス状態の解析
+   - 完了済み ([x]) と未完了 ([ ]) の識別
+
+5. issue-todowrite-sync skill 呼び出し:
+   - スマートデフォルト適用:
+     - 8+ タスク + Phase情報あり → 現在Phaseのみ
+     - 8+ タスク + Phase情報なし → 最初の5タスクのみ
+     - 8未満 → 全タスク
+   - 完了済みタスク除外
+   - TodoWrite作成
+
+6. checkpoint-manager skill 呼び出し:
+   write_memory("issue_42_checkpoint", {
+     issue_number: 42,
+     issue_title: "...",
+     current_phase: "Phase 1",
+     task_mapping: [...],
+     progress: { completed: 0, total: N, percentage: 0 },
+     created_at: now(),
+     last_updated: now()
+   })
+
+7. GitHub Projects 更新:
+   source scripts/gh-projects-integration.sh
+   gh_projects_set_in_progress 42
+
+8. 結果表示:
+   ✅ Issue #42 loaded: "Issue Title"
+   TodoWrite: N タスク（未完了のみ）
+   → Phase 1 へ進む
+
+═══════════════════════════════════════════════════════════════
+B) Issue番号が未指定の場合 (/gh:start)
+═══════════════════════════════════════════════════════════════
+
+1. checkpoint 検索:
    list_memories() → filter "issue_*_checkpoint"
 
-2. 単一checkpoint発見時:
-   a. read_memory("issue_{number}_checkpoint")
-   b. checkpoint内容を解析:
-      - current_phase: 現在のPhase
-      - task_mapping: タスクマッピング
-      - parallel_groups: 並列グループ（あれば）
-      - progress: 進捗状況
+2a. checkpoint なし:
+    エラー表示:
+    "❌ アクティブなIssueがありません。
 
-3. 複数checkpoint発見時:
-   ⚠️ ユーザーに選択を促す:
-   "複数のアクティブIssueが検出されました:
-    - Issue #42: 3/8 (37.5%) - Phase 2: API Implementation
-    - Issue #45: 1/5 (20%) - Phase 1: Database
+    使用方法:
+      /gh:start 42    # Issue #42 で作業開始
+      /gh:issue create  # 新しいIssue作成"
 
-    どのIssueを続行しますか？"
+2b. 単一 checkpoint:
+    - read_memory("issue_{number}_checkpoint")
+    - GitHub照合（GitHubが勝つ）
+    - TodoWrite再構築
+    - explore_results復元（あれば）
+    - ログ: "✅ Resumed Issue #N from checkpoint"
 
-3.5. explore_results復元（v1.1・Compact耐性）:
-   checkpointにexplore_resultsが存在する場合:
-   a. explore_results読み取り
-   b. Phase 2のExplore並列実行をスキップ
-   c. 保存済みパターン・ファイル・推奨事項を再利用
-   d. ログ: "✅ Restored explore_results from checkpoint (skipping Phase 2 Explore)"
+2c. 複数 checkpoint:
+    ⚠️ ユーザーに選択を促す:
+    "複数のアクティブIssueが検出されました:
+     - Issue #42: 3/8 (37.5%) - Phase 2: API Implementation
+     - Issue #45: 1/5 (20%) - Phase 1: Database
 
-   → Compact後もPhase 2 Exploreを再実行せず、即座に実装フェーズへ
+     どのIssueを続行しますか？
+     → /gh:start 42 または /gh:start 45"
 
-4. GitHub照合（SSOT）:
+3. GitHub照合（SSOT）:
    a. gh issue view <number> --json body,comments
    b. チェックボックス状態を解析
    c. GitHub状態 vs checkpoint → GitHubが勝つ
    d. 不一致があれば checkpoint を更新
 
-5. TodoWrite再構築（v1.1強化）:
-   a. todowrite_snapshotが存在する場合（v1.1）:
+4. TodoWrite再構築:
+   a. todowrite_snapshotが存在する場合:
       - snapshotからTodoWrite状態を直接復元
-      - activeForm含む完全な状態復旧
-   b. snapshotなし（v1.0互換）:
-      - task_mappingから未完了タスク抽出（status != completed）
-      - 現在Phaseのタスクのみ
+   b. snapshotなし:
+      - task_mappingから未完了タスク抽出
    c. TodoWrite作成
 
+5. explore_results復元（Compact耐性）:
+   checkpointにexplore_resultsが存在する場合:
+   - Phase 2のExplore並列実行をスキップ
+   - ログ: "✅ Restored explore_results (skipping Phase 2 Explore)"
+
 6. 結果表示:
-   ✅ Recovered from checkpoint for Issue #42
+   ✅ Resumed Issue #42 from checkpoint
    GitHub進捗: 3/8タスク (37.5%)
    Current Phase: Phase 2 (API Implementation)
-   TodoWrite: 2タスク（Phase 2未完了分）
-
-7. 復旧完了 → Phase 1へ進む
-```
-
-### Phase 0: Context Sync
-
-```yaml
-1. セッションコンテキスト確認:
-   - Issue-TodoWriteマッピング存在？
-   - 存在する → GitHub連携モード
-   - 存在しない → Phase 0.5でcheckpoint確認済み
-
-2. GitHub連携モード時の自動同期:
-   a. GitHubから最新Issue取得
-      gh issue view <number> --json body,comments
-
-   b. コメントから進捗解析
-      "✅ Task 1/5: API実装 (20%)" → Task 1完了
-
-   c. TodoWriteを再構築
-      - 完了済みタスク削除
-      - 未完了タスクのみ維持
-
-3. 同期結果表示:
-   GitHub進捗: 2/5タスク (40%)
-   TodoWrite: 3タスク（未完了のみ）
+   TodoWrite: 2タスク（未完了分）
+   → Phase 1 へ進む
 ```
 
 ### Phase 1: Task Selection
@@ -172,10 +216,9 @@ Phase 4: GitHub同期 (Task tool → 同期エージェント)
           "{pending_count}個のpendingタスクがあります
 
           推奨アクション:
-          - 特定タスクのみ: /gh:start 1,2,3
-          - 次のPhaseのみ: /gh:issue work {issue_number} --current-phase \"Phase N\"
+          - 特定タスクのみ: /gh:start 42 --tasks 1,2,3
           - 最初の5タスクのみ実行（デフォルト）
-          - 全タスク実行: /gh:start --all
+          - 全タスク実行: /gh:start 42 --all
 
           デフォルト動作: 最初の5タスクのみ実行します"
 
@@ -390,16 +433,20 @@ Phase 4: GitHub同期 (Task tool → 同期エージェント)
           3. GitHubコメント投稿:
              "✅ Task <N>/<total>: <task_name> (<percentage>%)"
           4. チェックボックス更新: [ ] → [x]
-          5. 全完了判定 → Issue自動クローズ
       )
 
     ⚠️ 重要: Task toolは逐次実行されるため競合なし
 
-14. 全タスク完了時の自動処理:
+14. 全タスク完了時の処理:
     - progress-tracker skillが検出
     - 完了コメント投稿: "🎉 All tasks completed!"
-    - Issue状態: open → closed
-    - GitHub Projects: Status → Done
+    - PR作成を提案（Issueはクローズしない）:
+      "📋 Ready for PR:
+       git add . && git commit -m 'feat: Issue #42 implementation'
+       gh pr create --title 'Issue #42: タイトル' --body 'Closes #42'
+
+       PRマージ時にIssueが自動クローズされます"
+    - GitHub Projects: Status → In Review
 ```
 
 ### Phase 5: Next Task
@@ -412,27 +459,42 @@ Phase 4: GitHub同期 (Task tool → 同期エージェント)
 
 ## Real-World Workflow
 
-### Scenario 1: セッション再開
+### Scenario 1: 新規作業開始
 
 ```bash
-# Session 1（月曜）
-/gh:issue work 42  # 5タスク作成
-/gh:start          # Task 1実装 → GitHub更新
-/gh:start          # Task 2実装 → GitHub更新
-# （セッション終了）
+# Issue作成後、作業開始
+/gh:issue create --from-file claudedocs/brainstorm/auth.md
+→ Issue #42 created
 
-# Session 2（火曜・別マシン）
+/gh:start 42
+→ Issue読み込み → タスク解析 → TodoWrite作成
+→ checkpoint作成
+→ 依存関係分析 → 並列プラン表示
+→ Task 1実装 → GitHub更新
+→ Task 2実装 → GitHub更新
+# （セッション終了）
+```
+
+### Scenario 2: セッション再開
+
+```bash
+# Session 2（翌日・別マシン）
 /gh:start
-→ Context Sync実行
+→ checkpoint検索 → Issue #42 発見
 → GitHubから最新状態取得（2/5完了確認）
 → 未完了3タスクのみTodoWrite再構築
 → Task 3実装開始
+
+# または明示的にIssue番号指定
+/gh:start 42
+→ 既存checkpoint発見 → 復元モード
+→ Task 3実装開始
 ```
 
-### Scenario 2: 並列実行（自動判断）
+### Scenario 3: 並列実行（自動判断）
 
 ```bash
-/gh:start  # 引数なし = 最大10タスクまで自動実行
+/gh:start 42
 
 → 7タスクを分析（10以下なので全実行）
 → 依存関係検出:
@@ -452,24 +514,23 @@ Phase 4: GitHub同期 (Task tool → 同期エージェント)
 → 推定時短: 50% (逐次21分 → 並列11分)
 ```
 
-### Scenario 3: 大量タスク制御
+### Scenario 4: 大量タスク制御
 
 ```bash
 # 15タスクある場合
-/gh:start
+/gh:start 42
 
 → ⚠️ 15個のpendingタスクがあります
 → 推奨アクション:
-  - 特定タスクのみ: /gh:start 1,2,3
-  - 次のPhaseのみ: /gh:issue work 42 --current-phase "Phase 2"
+  - 特定タスクのみ: /gh:start 42 --tasks 1,2,3
   - 最初の5タスクのみ実行（デフォルト）
-  - 全タスク実行: /gh:start --all
+  - 全タスク実行: /gh:start 42 --all
 → デフォルト動作: 最初の5タスクのみ実行します
 
 → Task 1-5を実行...
 
 # 全タスク実行したい場合
-/gh:start --all
+/gh:start 42 --all
 → 15タスク全て実行（タスク数制限無視）
 ```
 
@@ -494,6 +555,7 @@ fullstack: [architect, frontend, backend, security]
 ## Options
 
 ```bash
+--tasks <1,2,3>      # 特定タスクのみ実行
 --framework <name>   # フレームワーク指定
 --with-tests         # テスト自動生成
 --parallel           # 強制並列（依存関係分析スキップ）
@@ -505,12 +567,21 @@ fullstack: [architect, frontend, backend, security]
 ## Error Handling
 
 ```bash
-# TodoWriteが空
-→ /gh:issue work <number> または /gh:brainstorm
+# TodoWriteが空 + checkpointなし
+→ /gh:start <issue_number> でIssue番号を指定
+→ または /gh:issue create で新規Issue作成
+
+# Issueが見つからない
+→ gh issue list --mine で有効なIssue確認
+
+# Issueが既にクローズ済み
+→ エラー表示「Issue #N は既にクローズ済みです」
+→ gh issue reopen N で再開可能
 
 # 全タスク完了
-→ GitHub Issue自動クローズ
-→ /gh:issue list --mine
+→ PR作成を提案（"Closes #42"付き）
+→ PRマージでIssue自動クローズ
+→ /gh:issue close でcheckpoint削除・振り返り
 
 # 同期エラー
 → Issue削除: TodoWriteのみモード続行
@@ -520,17 +591,17 @@ fullstack: [architect, frontend, backend, security]
 ## Integration Points
 
 ```yaml
-/gh:issue work:
-  - TodoWrite作成
-  - Issue-TodoWriteマッピング確立
-  - セッションコンテキスト保存
+Phase 0 (Issue Load):
+  - issue-parser skill: Issue解析
+  - issue-todowrite-sync skill: TodoWrite作成
   - checkpoint-manager skill: チェックポイント作成
+  - GitHub Projects: ステータス更新
 
 checkpoint-manager skill:
-  - Phase 0.5: Compact後の復旧
+  - Phase 0: 新規チェックポイント作成 or 復元
   - Phase 1.5後: parallel_groups保存
   - タスク完了時: status, progress更新
-  - Issue完了時: checkpoint削除
+  - PRマージ後: /gh:issue close経由でcheckpoint削除
 
 progress-tracker skill:
   - /gh:start実行時にサブエージェント経由で自動起動
@@ -555,7 +626,7 @@ progress-tracker skill:
 - 同期なし作業（--no-sync除く）
 - GitHubとTodoWriteの不一致放置
 - 警告なしで大量タスクを全実行（--allフラグが必要）
-- Phase 0.5復旧をスキップ（Compact後の必須ステップ）
+- Phase 0復旧をスキップ（Compact後の必須ステップ）
 
 ## 実行指示（重要）
 
@@ -565,9 +636,9 @@ progress-tracker skill:
 
 **ユーザーが明示的に指示しなくても、以下を自動的に実行してください:**
 
-0. ✅ **Phase 0.5: Checkpoint Recovery**（TodoWrite空の場合）
-   - `list_memories()` → `issue_*_checkpoint` 検索
-   - checkpoint発見時: GitHub照合 → TodoWrite再構築
+0. ✅ **Phase 0: Issue Load & Context Sync**
+   - Issue番号あり: Issue取得 → 解析 → TodoWrite作成 → checkpoint作成
+   - Issue番号なし: checkpoint検索 → 復元 → TodoWrite再構築
 1. ✅ TodoWriteから全pendingタスクを取得
 2. ✅ タスク数チェック（>10で警告、最初の5タスクに制限）
 3. ✅ 各タスクの内容（content）を読み取る
@@ -576,54 +647,59 @@ progress-tracker skill:
 6. ✅ **実行プランをユーザーに表示**
 7. ✅ グループごとに実装を実行 → **タスク完了ごとにcheckpoint更新**
 
-**⚠️ Phase 0.5とPhase 1.5はデフォルト動作です。スキップしないでください。**
+**⚠️ Phase 0とPhase 1.5はデフォルト動作です。スキップしないでください。**
 
 ---
 
 ### 引数解析と実行モード
 
+**Issue番号指定 (`/gh:start 42`)**:
+- Phase 0: Issue読み込み → タスク解析 → TodoWrite作成
+- Phase 1.5: 依存関係分析 → 並列グループ作成 → プラン表示
+- Phase 3: 実装実行
+
 **引数なし (`/gh:start`)**:
-- pending ≤ 10: 全pendingタスク → Phase 1.5必須実行 → 並列グループ作成 → プラン表示 → 実装
-- pending > 10: 警告表示 → 最初の5タスクのみ → Phase 1.5必須実行 → 実装
+- Phase 0: checkpoint検索 → 復元
+- 以降同様
 
-**タスク番号指定 (`/gh:start 1,2,3`)**:
-- 指定タスク → Phase 1.5必須実行 → 並列グループ作成 → プラン表示 → 実装
+**タスク指定 (`/gh:start 42 --tasks 2,3`)**:
+- 指定タスクのみ実行
 
-**`--all` フラグ (`/gh:start --all`)** (10タスク超の場合):
-- 全pendingタスク → Phase 1.5必須実行 → 並列グループ作成 → プラン表示 → 実装
+**`--all` フラグ (`/gh:start 42 --all`)**:
 - タスク数制限を無視して全て実行
 
-**`--parallel` フラグ (`/gh:start 1,2,3 --parallel`)** ⚠️:
+**`--parallel` フラグ (`/gh:start 42 --parallel`)** ⚠️:
 - Phase 1.5スキップ → 全て強制並列 → リスク: 依存関係違反
-- このモードのみPhase 1.5をスキップ可能
 
 ### 🔴 必須実行フロー（すべてのステップを実行）
 
-**⚠️ Phase 0.5とPhase 1.5は必須ステップです。スキップ禁止。**
+**⚠️ Phase 0とPhase 1.5は必須ステップです。スキップ禁止。**
 
 ```yaml
 実行順序（すべて必須）:
 
-🚨 Phase 0.5: Checkpoint Recovery（Compact耐性・最優先）🚨
-  条件: TodoWriteが空
-  ステップ:
-    1. list_memories() → "issue_*_checkpoint" フィルタ
-    2. checkpoint発見時:
-       a. read_memory("issue_{number}_checkpoint")
-       b. gh issue view {number} --json body,comments
-       c. GitHub vs checkpoint 照合（GitHubが勝つ）
-       d. TodoWrite再構築（未完了タスクのみ）
-    3. 複数checkpoint時: ユーザーに選択を促す
-    4. 復旧完了 → Phase 0へ
+🚨 Phase 0: Issue Load & Context Sync（最優先）🚨
 
-Phase 0: GitHub同期
-  - Issue-TodoWriteマッピング確認
-  - GitHub最新状態取得
+  A) Issue番号あり (/gh:start 42):
+    1. gh issue view 42 --json body,comments,state,title
+    2. closed → エラー、open → 続行
+    3. checkpoint確認:
+       - 存在 → 復元モード（GitHub照合 → TodoWrite再構築）
+       - 不在 → 新規モード:
+         a. issue-parser skill
+         b. issue-todowrite-sync skill
+         c. checkpoint-manager skill
+         d. GitHub Projects更新
+
+  B) Issue番号なし (/gh:start):
+    1. list_memories() → "issue_*_checkpoint" フィルタ
+    2. checkpoint発見 → 復元
+    3. なし → エラー「/gh:start <issue_number> を指定」
 
 Phase 1: タスク選択
   - 全pendingタスクを取得
   - タスク数チェック（>10で警告、最初の5タスクに制限）
-  - TodoWriteから実際のタスク内容（content）を読み取る
+  - TodoWriteから実際のタスク内容を読み取る
 
 🚨 Phase 1.5: 依存関係分析（必須・スキップ禁止）🚨
   ステップ:
@@ -737,7 +813,7 @@ sequential_group = {tasks: [1], mode: "sequential"}
 1. progress-tracker skillでGitHub Issue更新
 2. チェックボックス `[x]` 変更
 3. checkpoint更新（各タスク完了時）
-4. 全タスク完了時にIssue自動クローズ + checkpoint削除
+4. 全タスク完了時にPR作成を提案（Issueはクローズしない）
 
 Task tool経由でサブエージェント委譲:
 ```yaml
@@ -750,7 +826,7 @@ Task tool起動:
     3. GitHubコメント投稿: "✅ Task <N>/<total>: <name> (<percentage>%)"
     4. チェックボックス更新
     5. checkpoint-manager skill: タスク状態更新
-    6. 全完了時: Issue自動クローズ + checkpoint削除
+    6. 全完了時: PR作成を提案（Issueはクローズしない）
 ```
 
 ## Related Commands
@@ -758,39 +834,46 @@ Task tool起動:
 ```bash
 /gh:brainstorm      # 要件発見
 /gh:issue create    # Issue作成
-/gh:issue work      # マッピング確立（必須）
-/gh:start           # 実装開始（このコマンド）
-/gh:issue status    # 進捗確認
-/gh:issue close     # Issue完了
+/gh:start 42        # 作業開始・継続（このコマンド）
+/gh:issue close 42  # Issue完了
 ```
 
 ## Workflow Summary
 
 ```bash
+# 完全ワークフロー
 /gh:brainstorm "feature"
-/gh:issue create --from-file ...
-/gh:issue work 42
-/gh:start  # Task 1 → GitHub更新
-/gh:start  # Task 2 → GitHub更新
-# セッション終了
+/gh:issue create --from-file ...  # → Issue #42 作成
+/gh:start 42                       # → 作業開始
+# （セッション終了）
 
 # 翌日再開
-/gh:start  # 自動同期 → Task 3
-/gh:start  # Task 4 → 完了 → 自動クローズ ✅
+/gh:start                          # → checkpoint自動復元 → 作業継続
+/gh:start                          # → 全Task完了 → PR作成を提案
+
+# PR作成
+git add . && git commit -m "feat: ..."
+gh pr create --body "Closes #42"   # → CodeRabbitレビュー
+
+# レビュー対応後、マージ
+gh pr merge                        # → Issue #42 自動クローズ
+
+# 振り返り・クリーンアップ
+/gh:issue close 42                 # → 振り返り記録 → checkpoint削除
 ```
 
 ## Tips
 
-💡 **セッション再開**: 何もせず `/gh:start` で自動同期
-💡 **即座更新**: タスク完了ごとにサブエージェントが確実実行
+💡 **初回**: `/gh:start 42` でIssue番号を指定して開始
+💡 **再開**: `/gh:start` だけでcheckpointから自動復元
+💡 **即座更新**: タスク完了ごとにGitHub自動同期
+💡 **PR経由クローズ**: 全タスク完了→PR作成→マージでIssue自動クローズ
 💡 **役割分担**: GitHub=SSOT、Serena Memory=checkpoint、TodoWrite=作業キュー
 💡 **複数デバイスOK**: 自宅・オフィス・カフェでシームレス継続
-💡 **Issue連携必須**: `/gh:issue work` でマッピング確立
 💡 **大量タスク制御**: 10タスク超は自動的に最初の5タスクのみ実行
-💡 **Phase単位作業**: `/gh:issue work` のPhase制御と連携して効率的に作業
-💡 **Compact耐性**: Phase 0.5で自動復旧、checkpointで状態永続化
+💡 **Compact耐性**: Phase 0で自動復旧、checkpointで状態永続化
 
 ---
 
-**Last Updated**: 2025-11-28
-**Version**: 1.3.0 (Parallel Explore + 制限撤廃 + v1.1 Checkpoint)
+**Last Updated**: 2025-12-16
+**Version**: 2.1.0 (PR経由クローズ - 全タスク完了時はPR作成を提案、Issueはマージで自動クローズ)
