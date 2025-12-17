@@ -64,6 +64,7 @@
 | `/gh:issue create` | Issue作成 | `create "タイトル"` |
 | `/gh:start 42` | 作業開始 | `start 42` |
 | `/gh:start` | セッション再開 | checkpoint自動復元 |
+| `/gh:review 17` | レビュー対応 | CodeRabbit指摘を処理 |
 | `/gh:issue close 42` | Issue完了 | `close 42` |
 
 ### 壁打ち・企画
@@ -80,6 +81,13 @@
 |---------|------|-----|
 | `/gh:verify <path>` | ログ分析・検証 | `verify /var/log/app.log` |
 | `/gh:find-similar <target>` | 水平展開調査 | `find-similar src/auth/login.ts` |
+
+### シェルスクリプト（Claude Code外）
+
+| コマンド | 用途 | 例 |
+|---------|------|-----|
+| `gtr-start 42` | Worktree作成 + Claude Code起動 | Issue #42 用のworktreeで作業開始 |
+| `gtr-finish 42` | PRマージ後クリーンアップ | worktree・ブランチ削除・同期 |
 
 ### 廃止されたコマンド
 
@@ -144,14 +152,18 @@ Serena Memory (checkpoint)
 # Session 2（翌日・別マシン）
 /gh:start                          # checkpoint自動復元
 # → Task 3, 4, 5 完了
-# → 全完了 → PR作成を提案
+# → 全完了 → 確認後に自動 commit + PR作成
 
-# PR作成・レビュー
-gh pr create --body "Closes #42"   # CodeRabbitレビュー
-# レビュー対応 → マージ → Issue自動クローズ ✅
+# レビュー対応
+/gh:review 17                      # CodeRabbit指摘を分析・修正
+# → 整合性確認 → 採用/却下 → テスト → push
+# → 再レビュー通過まで繰り返し
 
-# 振り返り
-/gh:issue close 42                 # checkpoint削除・learnings記録
+# マージ
+gh pr merge 17                     # Issue自動クローズ ✅
+
+# クリーンアップ（Claude Code終了後、ターミナルで）
+gtr-finish 42                      # worktree・ブランチ削除・同期
 ```
 
 ### Compact耐性
@@ -205,11 +217,15 @@ gh auth status  # 確認
 │   ├── README.md (このファイル)
 │   ├── issue.md (create/close)
 │   ├── start.md (作業開始・継続)
+│   ├── review.md (レビュー対応)
+│   ├── gtr-start.md (worktree統合)
 │   ├── brainstorm.md (壁打ち)
 │   ├── guide.md (詳細ガイド)
 │   ├── usage.md (ユースケース)
 │   ├── verify.md (ログ分析)
-│   └── find-similar.md (類似パターン検索)
+│   ├── find-similar.md (類似パターン検索)
+│   └── docs/
+│       └── START_DESIGN_ANALYSIS.md (設計分析レポート)
 │
 └── skills/
     ├── issue-parser/
@@ -221,5 +237,5 @@ gh auth status  # 確認
 
 ---
 
-**バージョン**: 2.2.0 (PR経由クローズ)
-**最終更新**: 2025-12-16
+**バージョン**: 2.4.0 (gtr-finish シェルスクリプト追加)
+**最終更新**: 2025-12-17
