@@ -9,6 +9,8 @@ CLAUDE.local.md
 .superclaude-metadata.json
 
 # Session and temporary data
+cache/
+stats-cache.json
 file-history/
 history.jsonl
 debug/
