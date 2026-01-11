@@ -320,6 +320,22 @@ Issue連携:
 
 **あなたは今、`/gh:review` コマンドを実行しています。**
 
+### 🚨 CRITICAL: 見逃し防止ルール
+
+```yaml
+絶対禁止事項:
+  - ❌ 「対応済み」マークを見て自動スキップ
+  - ❌ 「推奨」「Trivial」を確認なしでスキップ
+  - ❌ Phase 3 の AskUserQuestion を省略
+  - ❌ コメント件数を確認せず完了宣言
+
+必須確認事項:
+  - ✅ 取得した全コメントをユーザーに提示
+  - ✅ 各コメントの対応状況を明示的に確認
+  - ✅ 「対応済み」でもユーザーに報告
+  - ✅ 完了前にコメント対応チェックリストを表示
+```
+
 ### 必須実行フロー
 
 ```yaml
@@ -329,9 +345,10 @@ Issue連携:
    - CLAUDE.md / docs/PLAN.md 読み込み
    - ローカルブランチ準備
 
-2. Phase 1: Review Comments Fetch
+2. Phase 1: Review Comments Fetch（🔴 全件取得必須）
    - gh api でコメント取得
    - severity/category で分類
+   - 🚨 コメント総数を記録: "N件のコメントを取得"
 
 3. Phase 2: Alignment Analysis（🔴 必須）
    - 各指摘に対して整合性分析
@@ -339,10 +356,17 @@ Issue連携:
    - プロジェクト方針との照合
    - 推奨アクション決定
 
-4. Phase 3: User Decision
-   - 各指摘を表示
-   - AskUserQuestion で採用/却下/スキップ確認
+4. Phase 3: User Decision（🔴 必須・省略不可）
+   - 🚨 全コメントを表示（「対応済み」含む）
+   - 🚨 AskUserQuestion で採用/却下/スキップ確認
    - 却下時は CodeRabbit に返信
+   - 🚨 チェックリスト表示:
+     ```
+     📋 コメント対応状況 (N件中):
+     [x] #1: path:line - 対応済み
+     [ ] #2: path:line - 要対応（推奨）
+     [ ] #3: path:line - 要対応（Minor）
+     ```
 
 5. Phase 4: Apply Fixes
    - 採用した指摘を修正
@@ -356,6 +380,11 @@ Issue連携:
 7. Phase 6: Commit & Push
    - 確認付きコミット
    - プッシュ
+   - 🚨 最終チェックリスト確認:
+     ```
+     ✅ 全 N 件のコメントを確認済み
+     ✅ 対応: X件 / スキップ: Y件 / 却下: Z件
+     ```
    - 再レビュー待ち案内
 ```
 
@@ -397,5 +426,6 @@ Issue連携:
 
 ---
 
-**Last Updated**: 2025-12-16
-**Version**: 1.0.0
+**Last Updated**: 2025-12-26
+**Version**: 1.1.0
+**Changelog**: v1.1.0 - Added CRITICAL section to prevent comment oversight (Phase 3 enforcement)
