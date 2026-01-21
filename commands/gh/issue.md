@@ -28,6 +28,13 @@ Issueの作成と完了を担当するシンプルなコマンド。
 /gh:issue create --interactive
 ```
 
+**テンプレート自動選択**:
+リポジトリに`.github/ISSUE_TEMPLATE/`がある場合、依頼内容から自動判定:
+- "機能", "feature", "追加", "実装", "新規" → `--template feature.yml`
+- "バグ", "bug", "エラー", "不具合", "修正" → `--template bug.yml`
+- 上記以外 → `--template task.yml`
+ユーザーによる`--template`指定は不要。
+
 **処理フロー**:
 1. Issue詳細の収集
 2. GitHubに作成
