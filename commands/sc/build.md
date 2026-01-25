@@ -1,10 +1,6 @@
 ---
 name: build
 description: "インテリジェントなエラーハンドリングと最適化によるプロジェクトのビルド・コンパイル・パッケージング"
-category: utility
-complexity: enhanced
-mcp-servers: [playwright]
-personas: [devops-engineer]
 ---
 
 # /sc:build - Project Building and Packaging

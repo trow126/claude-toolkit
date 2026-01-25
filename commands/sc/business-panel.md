@@ -3,7 +3,6 @@
 ```yaml
 ---
 command: "/sc:business-panel"
-category: "Analysis & Strategic Planning"  
   purpose: "複数のビジネス専門家によるアダプティブなインタラクションモード付きビジネス分析"
 wave-enabled: true
 performance-profile: "complex"

@@ -1,10 +1,6 @@
 ---
 name: document
 description: "コンポーネント・関数・API・機能にフォーカスしたドキュメントを生成する"
-category: utility
-complexity: basic
-mcp-servers: []
-personas: []
 ---
 
 # /sc:document - フォーカスドなドキュメント生成

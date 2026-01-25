@@ -1,10 +1,6 @@
 ---
 name: gh:find-similar
 description: "実装やバグ修正の水平展開が必要な箇所を自動調査。サブエージェント委譲でコンテキスト効率化。Serena MCPで類似パターン・シンボル・参照を検索し、影響範囲を可視化。"
-category: analysis
-complexity: standard
-mcp-servers: [serena]
-personas: []
 ---
 
 # /gh:find-similar - 類似パターン検索と水平展開調査

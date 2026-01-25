@@ -1,9 +1,6 @@
 ---
 name: gh:review
 description: CodeRabbitレビュー指摘をIssue・計画との整合性を確認しながら処理。採用/却下を判断し、修正・テスト・再プッシュまで一貫実行。
-category: workflow
-complexity: standard
-mcp-servers: [serena, sequential]
 ---
 
 # /gh:review - CodeRabbitレビュー対応コマンド

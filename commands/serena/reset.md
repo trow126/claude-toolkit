@@ -1,9 +1,6 @@
 ---
 name: serena:reset
 description: "Serenaメモリの管理・削除・再オンボーディングガイド"
-category: utility
-complexity: low
-mcp-servers: [serena]
 ---
 
 # /serena:reset - Serenaメモリ管理ガイド

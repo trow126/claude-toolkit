@@ -1,10 +1,6 @@
 ---
 name: test
 description: "カバレッジ分析と自動品質レポート付きでテストを実行する"
-category: utility
-complexity: enhanced
-mcp-servers: [playwright]
-personas: [qa-specialist]
 ---
 
 # /sc:test - Testing and Quality Assurance

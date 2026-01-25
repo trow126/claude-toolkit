@@ -1,10 +1,6 @@
 ---
 name: gh:verify
 description: "ログファイルを分析し、修正検証・異常検出・デバッグ支援を実施。サブエージェント委譲でコンテキスト効率化。結果をGitHub Issueコメントとして投稿。"
-category: analysis
-complexity: standard
-mcp-servers: [serena]
-personas: []
 ---
 
 # GitHub Issue連携ログ分析コマンド

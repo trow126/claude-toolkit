@@ -1,10 +1,6 @@
 ---
 name: improve
 description: "コード品質・性能・保守性に対して体系的な改善を適用する"
-category: workflow
-complexity: standard
-mcp-servers: [sequential, context7]
-personas: [architect, performance, quality, security]
 ---
 
 # /sc:improve - Code Improvement

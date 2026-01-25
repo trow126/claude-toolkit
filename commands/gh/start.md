@@ -1,8 +1,6 @@
 ---
 name: gh:start
 description: GitHub Issue駆動開発（簡略版v3）。Issue取得→逐次実行→進捗同期の3フェーズで確実に実行。
-category: workflow
-complexity: standard
 ---
 
 # /gh:start - GitHub Issue駆動開発

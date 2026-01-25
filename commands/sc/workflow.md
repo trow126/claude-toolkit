@@ -1,10 +1,6 @@
 ---
 name: workflow
 description: "PRD と機能要件から構造化された実装ワークフローを生成する"
-category: orchestration
-complexity: advanced
-mcp-servers: [sequential, context7, magic, playwright, morphllm, serena]
-personas: [architect, analyzer, frontend, backend, security, devops, project-manager]
 ---
 
 # /sc:workflow - Implementation Workflow Generator

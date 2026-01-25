@@ -1,10 +1,6 @@
 ---
 name: load
 description: "Serena MCP と連携してプロジェクトコンテキストを読み込むセッションライフサイクル管理"
-category: session
-complexity: standard
-mcp-servers: [serena]
-personas: []
 ---
 
 # /sc:load - プロジェクトコンテキスト読み込み

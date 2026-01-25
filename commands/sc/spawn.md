@@ -1,10 +1,6 @@
 ---
 name: spawn
 description: "インテリジェントな分解と委譲によるメタシステムタスクオーケストレーション"
-category: special
-complexity: high
-mcp-servers: []
-personas: []
 ---
 
 # /sc:spawn - Meta-System Task Orchestration

@@ -1,10 +1,6 @@
 ---
 name: task
 description: "インテリジェントなワークフロー管理と委譲による複雑タスクの実行"
-category: special
-complexity: advanced
-mcp-servers: [sequential, context7, magic, playwright, morphllm, serena]
-personas: [architect, analyzer, frontend, backend, security, devops, project-manager]
 ---
 
 # /sc:task - Enhanced Task Management

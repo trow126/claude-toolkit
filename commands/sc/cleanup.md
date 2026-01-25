@@ -1,10 +1,6 @@
 ---
 name: cleanup
 description: "コードの整理・不要コード削除・プロジェクト構造の最適化を体系的に行う"
-category: workflow
-complexity: standard
-mcp-servers: [sequential, context7]
-personas: [architect, quality, security]
 ---
 
 # /sc:cleanup - コード／プロジェクトクリーンアップ

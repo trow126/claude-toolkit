@@ -1,10 +1,6 @@
 ---
 name: pm
 description: "プロジェクトマネージャーエージェント - すべてのサブエージェントを調整しワークフローを統合的に管理するデフォルトのオーケストレーションレイヤー"
-category: orchestration
-complexity: meta
-mcp-servers: [sequential, context7, magic, playwright, morphllm, serena, tavily, chrome-devtools]
-personas: [pm-agent]
 ---
 
 # /sc:pm - プロジェクトマネージャーエージェント（常時アクティブ）

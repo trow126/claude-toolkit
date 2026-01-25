@@ -1,10 +1,6 @@
 ---
 name: implement
 description: "インテリジェントなペルソナ起動と MCP 統合による機能・コード実装"
-category: workflow
-complexity: standard
-mcp-servers: [context7, sequential, magic, playwright]
-personas: [architect, frontend, backend, security, qa-specialist]
 ---
 
 # /sc:implement - Feature Implementation

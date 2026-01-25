@@ -1,10 +1,6 @@
 ---
 name: help
 description: "利用可能なすべての /sc コマンドとその機能を一覧表示する"
-category: utility
-complexity: low
-mcp-servers: []
-personas: []
 ---
 
 # /sc:help - コマンドリファレンス

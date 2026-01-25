@@ -1,10 +1,6 @@
 ---
 name: coderabbit
 description: "sc:analyzeベースにCodeRabbit観点を追加したコードレビュー。見落とされがちなリファクタリング指摘を拾い上げる"
-category: utility
-complexity: standard
-mcp-servers: []
-personas: []
 ---
 
 # /gh:coderabbit - CodeRabbitスタイル コードレビュー

@@ -1,10 +1,6 @@
 ---
 name: research
 description: 深い Web リサーチを自動計画とインテリジェントな検索で行う
-category: command
-complexity: advanced
-mcp-servers: [tavily, sequential, playwright, serena]
-personas: [deep-research-agent]
 ---
 
 # /sc:research - 深層リサーチコマンド

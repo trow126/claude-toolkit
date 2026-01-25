@@ -1,9 +1,6 @@
 ---
 name: gh:brainstorm
 description: "ソクラテス式対話を通じて GitHub Issue 作成用の要件をインタラクティブに整理する"
-category: workflow
-complexity: medium
-mcp-servers: [sequential, context7]
 ---
 
 # /gh:brainstorm - Issue 要件ブレインストーミング

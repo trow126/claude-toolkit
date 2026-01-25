@@ -1,10 +1,6 @@
 ---
 name: explain
 description: "コード・概念・システム挙動を教育的観点から分かりやすく説明する"
-category: workflow
-complexity: standard
-mcp-servers: [sequential, context7]
-personas: [educator, architect, security]
 ---
 
 # /sc:explain - コード／概念の解説

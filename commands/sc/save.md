@@ -1,10 +1,6 @@
 ---
 name: save
 description: "Serena MCP と連携してセッションコンテキストを永続化するセッションライフサイクル管理"
-category: session
-complexity: standard
-mcp-servers: [serena]
-personas: []
 ---
 
 # /sc:save - セッションコンテキスト保存

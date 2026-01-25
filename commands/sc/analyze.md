@@ -1,10 +1,6 @@
 ---
 name: analyze
 description: "品質・セキュリティ・性能・アーキテクチャ観点からコードを包括的に解析する"
-category: utility
-complexity: basic
-mcp-servers: []
-personas: []
 ---
 
 # /sc:analyze - コード解析と品質評価

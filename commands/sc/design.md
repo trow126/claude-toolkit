@@ -1,10 +1,6 @@
 ---
 name: design
 description: "システムアーキテクチャ・API・コンポーネントインターフェースを包括的に設計する"
-category: utility
-complexity: basic
-mcp-servers: []
-personas: []
 ---
 
 # /sc:design - システム／コンポーネント設計

@@ -1,10 +1,6 @@
 ---
 name: brainstorm
 description: "ソクラテス式対話と体系的な探索によるインタラクティブな要件発見"
-category: orchestration
-complexity: advanced
-mcp-servers: [sequential, context7, magic, playwright, morphllm, serena]
-personas: [architect, analyzer, frontend, backend, security, devops, project-manager]
 ---
 
 # /sc:brainstorm - インタラクティブな要件ブレインストーミング

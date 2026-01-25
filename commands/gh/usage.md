@@ -1,8 +1,6 @@
 ---
 name: gh:usage
 description: "GitHub Issue駆動開発の効率的な使い方パターンとシナリオ別ワークフロー例"
-category: reference
-complexity: basic
 ---
 
 # /gh:usage - ユースケース集

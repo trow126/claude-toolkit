@@ -1,10 +1,6 @@
 ---
 name: reflect
 description: "Serena MCP の分析機能を用いてタスクの振り返りと妥当性検証を行う"
-category: special
-complexity: standard
-mcp-servers: [serena]
-personas: []
 ---
 
 # /sc:reflect - タスク振り返り／検証

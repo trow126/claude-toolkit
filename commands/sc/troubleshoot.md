@@ -1,10 +1,6 @@
 ---
 name: troubleshoot
 description: "コード・ビルド・デプロイ・システム挙動における問題を診断・解決する"
-category: utility
-complexity: basic
-mcp-servers: []
-personas: []
 ---
 
 # /sc:troubleshoot - Issue Diagnosis and Resolution

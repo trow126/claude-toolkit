@@ -1,10 +1,6 @@
 ---
 name: estimate
 description: "タスク・機能・プロジェクトに対してインテリジェントな開発見積もりを行う"
-category: special
-complexity: standard
-mcp-servers: [sequential, context7]
-personas: [architect, performance, project-manager]
 ---
 
 # /sc:estimate - 開発見積もり

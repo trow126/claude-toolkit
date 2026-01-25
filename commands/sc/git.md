@@ -1,10 +1,6 @@
 ---
 name: git
 description: "Git 操作をインテリジェントなコミットメッセージ生成とワークフロー最適化付きで実行する"
-category: utility
-complexity: basic
-mcp-servers: []
-personas: []
 ---
 
 # /sc:git - Git 操作

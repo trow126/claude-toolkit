@@ -1,10 +1,6 @@
 ---
 name: gh:issue
 description: "GitHub Issueのライフサイクル管理（作成・完了）"
-category: workflow
-complexity: simple
-mcp-servers: []
-personas: []
 ---
 
 # GitHub Issue管理コマンド

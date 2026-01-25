@@ -1,10 +1,6 @@
 ---
 name: gh:guide
 description: "Issue駆動開発の完全ワークフローガイド（壁打ち〜クローズまで）"
-category: workflow
-complexity: medium
-mcp-servers: []
-personas: []
 ---
 
 # Issue駆動開発ワークフローガイド

@@ -1,10 +1,6 @@
 ---
 name: select-tool
 description: "複雑度スコアと処理内容の分析に基づき最適な MCP ツールをインテリジェントに選択する"
-category: special
-complexity: high
-mcp-servers: [serena, morphllm]
-personas: []
 ---
 
 # /sc:select-tool - MCP ツール自動選択

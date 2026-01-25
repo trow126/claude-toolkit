@@ -1,9 +1,6 @@
 ---
 name: gh:gtr-start
 description: Git Worktree + GitHub Issue駆動開発の統合エントリーポイント。ワークツリー作成からIssue作業開始まで一貫して実行。
-category: workflow
-complexity: standard
-mcp-servers: [serena]
 ---
 
 # /gh:gtr-start - Git Worktree統合ワークフロー

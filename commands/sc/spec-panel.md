@@ -1,10 +1,6 @@
 ---
 name: spec-panel
 description: "著名な仕様／ソフトウェア工学の専門家パネルによる仕様レビューと改善支援"
-category: analysis
-complexity: enhanced
-mcp-servers: [sequential, context7]
-personas: [technical-writer, system-architect, quality-engineer]
 ---
 
 # /sc:spec-panel - 仕様レビュー専門パネル

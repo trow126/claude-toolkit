@@ -1,10 +1,6 @@
 ---
 name: index
 description: "インテリジェントな構成による包括的なプロジェクトドキュメントとナレッジベースの生成"
-category: special
-complexity: standard
-mcp-servers: [sequential, context7]
-personas: [architect, scribe, quality]
 ---
 
 # /sc:index - Project Documentation
