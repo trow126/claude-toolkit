@@ -22,7 +22,6 @@ Here is a complete list of all available SuperClaude (`/sc`) commands.
 
 | Command | Description |
 |---|---|
-| `/sc:analyze` | Comprehensive code analysis across quality, security, performance, and architecture domains |
 | `/sc:brainstorm` | Interactive requirements discovery through Socratic dialogue and systematic exploration |
 | `/sc:build` | Build, compile, and package projects with intelligent error handling and optimization |
 | `/sc:business-panel` | Multi-expert business analysis with adaptive interaction modes |
@@ -112,8 +111,8 @@ SuperClaude supports behavioral flags to enable specific execution modes and too
 ### Usage Examples
 
 ```bash
-# Deep analysis with Context7 enabled
-/sc:analyze --think-hard --context7 src/
+# Comprehensive Python code review
+/gh:coderabbit src/
 
 # UI development with Magic and validation
 /sc:implement --magic --validate "Add user dashboard"

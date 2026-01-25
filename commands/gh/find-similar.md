@@ -654,7 +654,7 @@ Markdown形式でレポート整形:
 ## Related Commands
 
 ```bash
-/sc:analyze         # コード品質分析（補完的分析）
+/gh:coderabbit      # コード品質分析（補完的分析）
 /sc:troubleshoot    # バグ診断（バグ伝播確認）
 /gh:issue work      # Issue作業開始（Issue連携時）
 /gh:start           # タスク実装（Issue連携時）

@@ -1,94 +1,117 @@
 ---
 name: coderabbit
-description: "sc:analyzeベースにCodeRabbit観点を追加したコードレビュー。見落とされがちなリファクタリング指摘を拾い上げる"
+description: "Python向け統合コードレビュー。Quality/Security/Performance/Architecture + CodeRabbitパターンを全検出"
 ---
 
-# /gh:coderabbit - CodeRabbitスタイル コードレビュー
+# /gh:coderabbit - 統合コードレビュー
 
-sc:analyzeをベースに、CodeRabbitが指摘するパターンを検出するコードレビューコマンド。
-PRで採用されなかったリファクタリング等の指摘を改めて拾い上げる。
+Python限定の包括的コードレビューコマンド。
+sc:analyzeの4ドメイン分析とCodeRabbitパターン検出を統合し、Phase構造で明確な実行フローを提供。
 
 ## Triggers
+
 - PR作成前の事前レビュー
+- コード品質の包括的評価
 - リファクタリング対象の洗い出し
-- コード品質改善の優先度付け
-- CodeRabbitが指摘しそうな問題の事前検出
+- セキュリティ/パフォーマンス問題の事前検出
 
 ## Usage
+
 ```
-/gh:coderabbit [target] [--focus quality|security|performance|architecture|refactor|all] [--depth quick|deep]
+/gh:coderabbit [target] [--depth quick|deep]
 ```
 
-## Behavioral Flow
+- `target`: 対象パス（省略時はプロジェクト全体）
+- `--depth quick`: Phase 1 (Lint) のみ実行
+- `--depth deep`: 全Phase実行（デフォルト）
 
-1. **Discover** [継承: sc:analyze]: ファイル発見・言語検出・プロジェクト構造分析
-2. **Lint** [追加]: `ruff check --output-format=json` を実行してRuff検出結果を取得
-3. **Scan** [継承+拡張]:
-   - sc:analyze のドメイン別分析（quality/security/performance/architecture）
-   - CodeRabbitパターン検出（後述のチェックリスト参照）
-4. **Evaluate** [継承]: 重要度評価（High/Medium/Low）
-5. **Recommend** [継承]: アクション提案
-6. **Report** [継承]: 結果出力
+## Phase Structure
 
-## Tool Coordination
+### Phase 0: Setup（逐次実行）
 
-- **Bash**: `ruff check --output-format=json [target]` 実行
-- **Glob**: ファイル発見とプロジェクト構造分析
-- **Grep**: パターン検索（ゼロ除算候補、MIN_CELLS定義等）
-- **Read**: ソースコード精査
+1. **LEARNINGS.md読み込み**: 既知パターンとチェックリスト取得
+2. **対象ファイル探索**: `Glob: **/*.py` で Python ファイル発見
 
-## CodeRabbit パターンチェックリスト
+```yaml
+Tools:
+  - Read: LEARNINGS.md
+  - Glob: **/*.py (対象パス内)
+```
 
-### Ruff自動検出ルール
-以下のルールは `ruff check` で自動検出する：
+### Phase 1: Lint（逐次実行）
+
+Ruff による自動検出を実行。
+
+```yaml
+Tools:
+  - Bash: ruff check --output-format=json [target]
+  - Bash: ruff format --check [target]
+```
+
+**Ruff自動検出ルール**:
 
 | ルール | 説明 | 頻度 |
 |--------|------|------|
-| FBT001, FBT002 | Boolean位置引数（キーワード専用化推奨） | 高 |
+| FBT001, FBT002 | Boolean位置引数 | 高 |
 | ANN202, ANN204 | 戻り値型アノテーション欠落 | 高 |
 | PIE790 | 不要な `pass` 文 | 高 |
 | RUF022 | `__all__` ソート順 | 中 |
 | RUF043 | 正規表現にraw文字列未使用 | 中 |
-| RUF100 | 未使用 `noqa` ディレクティブ | 低 |
 | G004 | f-string使用のログ文 | 中 |
-| TRY003 | 例外メッセージの外部化 | 低 |
+| TRY401 | 冗長な例外ログ | 中 |
 
-### 手動検出パターン
+### Phase 2: Pattern Scan（並列実行）
 
-#### 1. 入力検証・エラーハンドリング
-| パターン | 検出方法 | 説明 |
-|---------|---------|------|
-| ゼロ除算リスク | Grep: `/ (count\|total\|len\([^)]+\)\|original_\w+)` | count=0 のケースでエラー |
-| Off-by-one | Grep: `MIN_CELLS\s*=\s*\d+` + 最大インデックス確認 | MIN_CELLS = max_index + 1 が必要 |
-| 範囲検証欠落 | Read: 関数シグネチャ確認 | val_ratio: 0-1, 長さ一致チェック |
-| フォールバック欠落 | Read: symlink_to, 外部API呼び出し | 失敗時の代替処理 |
+全ドメインのパターンを並列Grepで検索。
 
-#### 2. 型アノテーション改善
-| パターン | 検出方法 | 説明 |
-|---------|---------|------|
-| `Path` vs `str \| Path` | Grep: `def \w+\([^)]*:\s*Path[^|]` | API一貫性のため `str \| Path` 推奨 |
-| `__init__` 戻り値型 | Grep: `def __init__\([^)]*\):` (-> None なし) | ANN204違反 |
+```yaml
+並列実行グループ:
+  # Quality ドメイン
+  - Grep: "def \\w+\\([^)]*\\):" (型ヒント欠落候補)
+  - Grep: '"""' 欠落（docstring検出）
+  
+  # Security ドメイン
+  - Grep: "eval\\(|exec\\(|subprocess\\.call" (コードインジェクション)
+  - Grep: "password|secret|token.*=.*['\"]" (ハードコード認証情報)
+  - Grep: "pickle\\.load|yaml\\.load(?!.*Loader)" (安全でないデシリアライズ)
+  
+  # Performance ドメイン
+  - Grep: "for.*in.*for.*in" (ネストループ - O(n²)候補)
+  - Grep: "\\+= .*\\[|\\]\\.append" (ループ内リスト操作)
+  - Grep: "time\\.sleep" (同期的待機)
+  
+  # Architecture ドメイン
+  - Grep: "from.*import.*\\*" (ワイルドカードインポート)
+  - Grep: "global\\s+\\w+" (グローバル変数使用)
+  
+  # CodeRabbit パターン
+  - Grep: "/ (count|total|len\\([^)]+\\)|original_\\w+)" (ゼロ除算リスク)
+  - Grep: "MIN_CELLS\\s*=\\s*\\d+" (Off-by-one候補)
+  - Grep: "\\[\\d+\\]" (固定インデックスアクセス)
+  - Grep: "def __init__\\([^)]*\\):" (-> None欠落候補)
+```
 
-#### 3. テスト改善
-| パターン | 検出方法 | 説明 |
-|---------|---------|------|
-| NaNエッジケース | Grep tests/: `np\.nan\|NaN` | NaN値のテストがあるか |
-| KeyErrorエッジケース | Grep tests/: `KeyError\|存在しない` | 存在しないカラムのテスト |
-| 空データエッジケース | Grep tests/: `empty\|空\|len\(.*\)\s*==\s*0` | 空リスト/DataFrame のテスト |
-| shape検証 | Grep tests/: `\.shape\s*==` | ndimだけでなくshapeも検証 |
+### Phase 3: Evaluate（逐次実行）
 
-#### 4. 構造・パフォーマンス
-| パターン | 検出方法 | 説明 |
-|---------|---------|------|
-| テスト内inline import | Grep tests/: `def test_.*:.*from \w+ import` | モジュールレベルに移動推奨 |
-| コード重複 | Read: 類似コードブロック | 共通関数抽出 |
-| 大規模データ対応 | Read: リスト内包表記で全件ロード | ジェネレータ/遅延読み込み推奨 |
+検出結果を評価・分類。
 
-#### 5. ドキュメント整合性
-| パターン | 検出方法 | 説明 |
-|---------|---------|------|
-| API不整合 | Read: docsのコード例 vs 実装 | ドキュメントと実際のAPIの乖離 |
-| `__getattr__` 不発火 | Read: 直接import + `__getattr__` 定義 | 非推奨警告が回避される |
+```yaml
+評価基準:
+  Critical: 実行時エラー、セキュリティ脆弱性
+  High: データ破損リスク、パフォーマンス問題
+  Medium: 保守性問題、型安全性
+  Low: スタイル、ドキュメント
+  
+アクション:
+  1. 重要度分類（Critical > High > Medium > Low）
+  2. LEARNINGS.md との照合（既知パターンか？）
+  3. カテゴリ別グルーピング
+  4. 新規パターン候補の抽出
+```
+
+### Phase 4: Report（逐次実行）
+
+構造化された結果を出力。
 
 ## 出力フォーマット
 
@@ -98,79 +121,136 @@ PRで採用されなかったリファクタリング等の指摘を改めて拾
 ### 概要
 - 対象ファイル: X件
 - Ruff検出: Y件
-- 手動検出: Z件
+- パターン検出: Z件
+- 重要度: Critical X / High Y / Medium Z / Low W
 
-### Ruff検出
-| ファイル | 行 | ルール | 説明 |
-|---------|---|--------|------|
-| file.py | 42 | FBT001 | Boolean位置引数を使用 |
+### Critical Issues
+| ファイル | 行 | カテゴリ | 説明 |
+|---------|---|----------|------|
 
-### CodeRabbitパターン検出
+### High Priority
+| ファイル | 行 | カテゴリ | 説明 |
+|---------|---|----------|------|
 
-#### ゼロ除算リスク
-- `batch.py:285` - `filtered_count / original_count` で original_count=0 の可能性
+### Medium Priority
+（省略可能）
 
-#### Off-by-one
-- `types.py:212` - MIN_CELLS=20 だが最大index=20なので21が必要
+### LEARNINGS.md 照合
+- 既知パターン一致: X件
+- 新規パターン候補: Y件（LEARNINGS.md更新推奨）
 
-#### 型ヒント改善
-- `selector.py:41` - `Path` のみだが `str | Path` が望ましい
-
-#### テスト改善候補
-- `test_arrays.py` - NaN値のエッジケーステストがない
-
-### 優先度
-1. High: Off-by-one（実行時エラーの可能性）
-2. Medium: ゼロ除算ガード
-3. Low: 型ヒント改善（リファクタリング）
+### 推奨アクション
+1. [最優先修正項目]
+2. [次の修正項目]
 ```
+
+## 検出パターン詳細
+
+### Quality ドメイン
+
+| パターン | 検出方法 | 説明 |
+|---------|---------|------|
+| 型ヒント欠落 | Grep: 関数定義 | ANN系ルール対象 |
+| docstring欠落 | Grep: クラス/関数直後 | D100-D417系対象 |
+| 複雑度超過 | Ruff: C901 | 認知的複雑度 |
+
+### Security ドメイン
+
+| パターン | 検出方法 | 説明 |
+|---------|---------|------|
+| コードインジェクション | Grep: eval/exec/subprocess | S102, S307 |
+| ハードコード認証情報 | Grep: password/secret/token | S105, S106 |
+| 安全でないデシリアライズ | Grep: pickle.load/yaml.load | S301, S506 |
+| SQL インジェクション | Grep: f-string + execute | S608 |
+
+### Performance ドメイン
+
+| パターン | 検出方法 | 説明 |
+|---------|---------|------|
+| O(n²)候補 | Grep: ネストループ | 大規模データで問題 |
+| リスト連結ループ | Grep: += [] パターン | リスト内包推奨 |
+| 同期的待機 | Grep: time.sleep | asyncio.sleep推奨 |
+
+### Architecture ドメイン
+
+| パターン | 検出方法 | 説明 |
+|---------|---------|------|
+| ワイルドカードインポート | Grep: from X import * | 名前空間汚染 |
+| グローバル変数 | Grep: global keyword | 依存関係不明確 |
+| 循環インポート候補 | Read: 相互参照分析 | 構造問題 |
+
+### CodeRabbit パターン
+
+| パターン | 検出方法 | 説明 |
+|---------|---------|------|
+| ゼロ除算リスク | Grep: `/ count\|total\|len()` | ガード必須 |
+| Off-by-one | Grep: MIN_CELLS定義 + max index確認 | MIN_CELLS = max_index + 1 |
+| インデックス範囲 | Grep: 固定インデックス | 境界チェック必須 |
+| `__init__` 戻り値型 | Grep: def __init__ without -> None | ANN204 |
+| `Path` vs `str \| Path` | Grep: `: Path[^|]` | API一貫性 |
+
+### テスト品質
+
+| パターン | 検出対象 | 説明 |
+|---------|---------|------|
+| NaNエッジケース | tests/内のnp.nan/NaN | 欠損値テスト |
+| 空データケース | tests/内のempty/len==0 | 空入力テスト |
+| 境界値テスト | tests/内の0, -1, MAX | 境界条件テスト |
+
+## Tool Coordination
+
+| Phase | Tools | 並列/逐次 |
+|-------|-------|----------|
+| 0 | Read, Glob | 逐次 |
+| 1 | Bash (ruff) | 逐次 |
+| 2 | Grep ×10-15 | **並列** |
+| 3 | 内部処理 | 逐次 |
+| 4 | 出力生成 | 逐次 |
 
 ## Examples
 
 ### プロジェクト全体のレビュー
+
 ```
 /gh:coderabbit
-# プロジェクト全体をCodeRabbit観点でレビュー
-# Ruff検出 + 手動パターン検出
+# Phase 0-4 全実行
+# 全ドメイン + CodeRabbitパターン検出
 ```
 
 ### 特定ディレクトリのレビュー
+
 ```
 /gh:coderabbit src/data
-# src/data ディレクトリのみをレビュー
+# src/data ディレクトリのみ対象
 ```
 
-### リファクタリングフォーカス
-```
-/gh:coderabbit --focus refactor
-# 型アノテーション、コード構造、パターン改善に特化
-```
+### クイックチェック（Lintのみ）
 
-### クイックチェック
 ```
 /gh:coderabbit --depth quick
-# Ruff検出のみ、手動パターン検出はスキップ
+# Phase 0-1 のみ（Ruff検出）
+# 手動パターン検出はスキップ
 ```
-
-## sc:analyze との関係
-
-| 観点 | sc:analyze | /gh:coderabbit |
-|------|-----------|----------------|
-| Ruff連携 | 暗黙的 | 明示的に実行・結果統合 |
-| パターン検出 | 一般的品質問題 | CodeRabbit固有パターン |
-| 優先度基準 | セキュリティ > 品質 | 実行時エラー > リファクタリング |
-| ユースケース | 定期的品質監査 | PR前事前レビュー |
 
 ## Boundaries
 
 **Will:**
+
 - `ruff check` を実行してRuffルール違反を検出
+- 4ドメイン（Quality/Security/Performance/Architecture）のパターン検出
 - CodeRabbitが指摘するパターンを手動で検出
+- LEARNINGS.md との照合と新規パターン提案
 - 重要度に基づいた優先度付け
-- 具体的な修正箇所の提示
 
 **Will Not:**
+
 - コードの自動修正（提案のみ）
 - 実行時テスト（静的解析のみ）
+- Python以外の言語サポート
 - 外部サービス連携（CodeRabbit APIは使用しない）
-- セキュリティ脆弱性の深い分析（sc:analyze --focus security を使用）
+
+## LEARNINGS.md 連携
+
+1. **事前読み込み**: Phase 0 で LEARNINGS.md を読み込み
+2. **パターン照合**: Phase 3 で既知パターンとの一致を報告
+3. **新規提案**: 頻出する未登録パターンを LEARNINGS.md 更新候補として提案
