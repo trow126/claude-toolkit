@@ -65,6 +65,7 @@
 | `/gh:start 42` | 作業開始 | `start 42` |
 | `/gh:start` | セッション再開 | checkpoint自動復元 |
 | `/gh:review 17` | レビュー対応 | CodeRabbit指摘を処理 |
+| `/gh:debt` | 技術的負債管理 | 未対応指摘の追跡・Issue化 |
 | `/gh:issue close 42` | Issue完了 | `close 42` |
 
 ### 壁打ち・企画
@@ -218,6 +219,7 @@ gh auth status  # 確認
 │   ├── issue.md (create/close)
 │   ├── start.md (作業開始・継続)
 │   ├── review.md (レビュー対応)
+│   ├── debt.md (技術的負債管理)
 │   ├── gtr-start.md (worktree統合)
 │   ├── brainstorm.md (壁打ち)
 │   ├── guide.md (詳細ガイド)
@@ -226,6 +228,9 @@ gh auth status  # 確認
 │   ├── find-similar.md (類似パターン検索)
 │   └── docs/
 │       └── START_DESIGN_ANALYSIS.md (設計分析レポート)
+│
+├── claudedocs/
+│   └── technical_debt.md (未対応CodeRabbit指摘)
 │
 └── skills/
     ├── issue-parser/
@@ -237,5 +242,5 @@ gh auth status  # 確認
 
 ---
 
-**バージョン**: 2.4.0 (gtr-finish シェルスクリプト追加)
-**最終更新**: 2025-12-17
+**バージョン**: 2.5.0 (gh:debt + gh:review技術的負債追跡)
+**最終更新**: 2026-01-27
