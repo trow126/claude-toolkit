@@ -38,15 +38,29 @@ Tools:
   - Glob: **/*.py (対象パス内)
 ```
 
-### Phase 1: Lint（逐次実行）
+### Phase 1: Lint + Dead Code（逐次実行）
 
-Ruff による自動検出を実行。
+Ruff + Vulture による自動検出を実行。
 
 ```yaml
 Tools:
   - Bash: ruff check --output-format=json [target]
   - Bash: ruff format --check [target]
+  - Bash: vulture [target] --min-confidence 80  # Dead Code検出
 ```
+
+**Vulture検出対象**:
+
+| 種類 | 説明 | 信頼度 |
+|------|------|--------|
+| 未使用関数 | 呼び出されていない関数定義 | 60-100 |
+| 未使用クラス | インスタンス化されていないクラス | 60-100 |
+| 未使用メソッド | 呼び出されていないメソッド | 60-100 |
+| 未使用変数 | 代入後使用されていない変数 | 60-100 |
+| 未使用インポート | ruff F401 と重複、クロスチェック | 100 |
+| 到達不能コード | return/raise 後のコード | 100 |
+
+**注意**: `--min-confidence 80` で誤検出を抑制。フレームワーク用コールバック等は whitelist で除外。
 
 **Ruff自動検出ルール**:
 
@@ -121,6 +135,7 @@ Tools:
 ### 概要
 - 対象ファイル: X件
 - Ruff検出: Y件
+- Vulture検出: V件（Dead Code）
 - パターン検出: Z件
 - 重要度: Critical X / High Y / Medium Z / Low W
 
@@ -179,6 +194,23 @@ Tools:
 | グローバル変数 | Grep: global keyword | 依存関係不明確 |
 | 循環インポート候補 | Read: 相互参照分析 | 構造問題 |
 
+### Dead Code ドメイン（Vulture）
+
+| パターン | 検出方法 | 重要度 |
+|---------|---------|--------|
+| 未使用関数 | Vulture: unused function | High |
+| 未使用クラス | Vulture: unused class | High |
+| 未使用メソッド | Vulture: unused method | Medium |
+| 未使用変数 | Vulture: unused variable | Low |
+| 到達不能コード | Vulture: unreachable code | High |
+| 未使用プロパティ | Vulture: unused property | Medium |
+| 未使用属性 | Vulture: unused attribute | Low |
+
+**Whitelist推奨ケース**:
+- フレームワークコールバック（pytest fixtures, Django signals等）
+- `__all__` でエクスポートされる公開API
+- 動的呼び出し（`getattr`、リフレクション）
+
 ### CodeRabbit パターン
 
 | パターン | 検出方法 | 説明 |
@@ -202,7 +234,7 @@ Tools:
 | Phase | Tools | 並列/逐次 |
 |-------|-------|----------|
 | 0 | Read, Glob | 逐次 |
-| 1 | Bash (ruff) | 逐次 |
+| 1 | Bash (ruff, vulture) | 逐次 |
 | 2 | Grep ×10-15 | **並列** |
 | 3 | 内部処理 | 逐次 |
 | 4 | 出力生成 | 逐次 |
@@ -237,7 +269,8 @@ Tools:
 **Will:**
 
 - `ruff check` を実行してRuffルール違反を検出
-- 4ドメイン（Quality/Security/Performance/Architecture）のパターン検出
+- `vulture` を実行してデッドコード（未使用関数/クラス/変数）を検出
+- 5ドメイン（Quality/Security/Performance/Architecture/Dead Code）のパターン検出
 - CodeRabbitが指摘するパターンを手動で検出
 - LEARNINGS.md との照合と新規パターン提案
 - 重要度に基づいた優先度付け
