@@ -15,6 +15,11 @@
       "Bash(> /dev/sd*)",
       "Bash(dd if=*of=/dev/sd*)"
     ],
+    "ask": [
+      "Bash(rm:*)",
+      "Bash(chmod:*)",
+      "Bash(chown:*)"
+    ],
     "allow": [
       "Read:*",
       "Glob:*",
@@ -70,7 +75,6 @@
       "Bash(uvx:*)",
       "Bash(node:*)",
       "Bash(claude:*)",
-      "Bash(chmod:*)",
       "Bash(mkdir:*)",
       "Bash(tee:*)",
       "Bash(sed:*)",
@@ -85,7 +89,6 @@
       "Bash(gtr-finish:*)",
       "Bash(project-locate:*)",
       "Bash(curl:*)",
-      "Bash(rm:*)",
       "Bash(uv run pytest:*)",
       "Bash(uv sync:*)",
       "Bash(uv add:*)",

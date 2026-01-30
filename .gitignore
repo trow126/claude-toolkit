@@ -26,6 +26,10 @@ shell-snapshots/
 statsig/
 todos/
 .session/
+paste-cache/
+tasks/
+tmp/
+telemetry/
 
 # SuperClaude standard files (not customized, root directory only)
 /*.md
