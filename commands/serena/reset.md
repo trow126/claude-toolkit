@@ -5,175 +5,225 @@ description: "Serenaメモリの管理・削除・再オンボーディングガ
 
 # /serena:reset - Serenaメモリ管理ガイド
 
-## 📋 現在のメモリ確認
+## Serena MCP ツール一覧
 
-### ステップ1: メモリ一覧を表示
-```
-"Serenaメモリの一覧を見せて"
+| ツール | 機能 | 用途 |
+|--------|------|------|
+| `list_memories` | メモリ一覧取得 | 現状確認 |
+| `read_memory` | メモリ読み込み | 内容確認 |
+| `write_memory` | メモリ書き込み | 知識保存 |
+| `delete_memory` | メモリ削除 | クリーンアップ |
+| `edit_memory` | メモリ編集 | 部分更新 |
+| `check_onboarding_performed` | オンボーディング状態確認 | 初期化チェック |
+| `onboarding` | 再オンボーディング実行 | プロジェクト再分析 |
+
+---
+
+## 🔄 完全リセット手順（推奨）
+
+**重要**: CLAUDE.mdを一時退避してからonboardingを実行。古いCLAUDE.mdの情報がmemoriesを汚染するのを防ぐ。
+
+### ステップ1: CLAUDE.md退避（循環参照防止）
+
+```bash
+# CLAUDE.mdを一時退避（Serenaがコードのみから分析するため）
+mv CLAUDE.md CLAUDE.md.bak
 ```
 
-### ステップ2: 内容を確認
+### ステップ2: 全メモリ削除
+
 ```
-"project_overview メモリの内容を見せて"
+mcp__serena__list_memories()
+
+# 各メモリに対して実行
+mcp__serena__delete_memory("project_overview")
+mcp__serena__delete_memory("code_style")
+mcp__serena__delete_memory("suggested_commands")
+mcp__serena__delete_memory("task_completion_checklist")
+# ... 他のメモリも同様
+```
+
+### ステップ3: 再オンボーディング（コードのみから分析）
+
+```
+mcp__serena__onboarding()
+```
+
+これでSerenaが**コードのみ**から分析し、以下を自動生成:
+- `project_overview` - プロジェクト概要
+- `code_style` - コードスタイル規約
+- `suggested_commands` - 推奨コマンド
+
+### ステップ4: CLAUDE.md復元
+
+```bash
+# CLAUDE.mdを復元
+mv CLAUDE.md.bak CLAUDE.md
+```
+
+### ステップ5: CLAUDE.md最新化（オプション）
+
+```bash
+# 最新のSerena memoriesを参照してCLAUDE.mdを更新
+claude init
 ```
 
 ---
 
-## 🗑️ メモリ削除方法
+## ⚠️ 循環参照問題について
 
-### 方法1: 個別削除（選択的クリーンアップ）
-
-**タスク状態メモリを削除**:
+**問題**:
 ```
-"task_completion_checklist メモリを削除して"
-"調査結果の古いメモリを削除して"
-```
-
-**推奨する削除対象**:
-- タスクチェックリスト
-- 一時的な調査結果（日付付き）
-- 完了したタスクの進捗情報
-- セッション固有の状態
-
----
-
-### 方法2: カテゴリ別削除
-
-**タスク関連のみ削除**:
-```
-"タスク状態に関するSerenaメモリを全て削除して"
+CLAUDE.md (古い)
+    ↓ Serena onboarding参照
+Serena memories (汚染)
+    ↓ claude init参照
+CLAUDE.md (汚染)
 ```
 
-**古い調査結果を削除**:
+**解決**:
 ```
-"2ヶ月以上前の調査メモリを削除して"
+CLAUDE.md退避
+    ↓
+Serena memories削除
+    ↓
+onboarding（コードのみ分析）
+    ↓
+CLAUDE.md復元
+    ↓
+claude init（最新memories参照）
 ```
 
 ---
 
-### 方法3: 全削除して再スタート
+## 📋 メモリ確認
 
-**完全リセット**:
-```
-"sample-reference-projectプロジェクトのSerenaメモリを全て削除して"
-```
+### 一覧表示
 
-その後、再オンボーディング:
 ```
-"このプロジェクトを再オンボーディングして"
+mcp__serena__list_memories()
 ```
 
----
+### 内容確認
 
-## 🔄 再オンボーディング手順
-
-### 完全な再オンボーディング
-
-**ステップ1: 既存メモリを確認**
 ```
-"Serenaメモリを一覧表示"
+mcp__serena__read_memory("project_overview")
 ```
 
-**ステップ2: 不要なメモリを削除**
-```
-"タスク状態と一時調査結果のメモリを削除"
-```
+### オンボーディング状態確認
 
-**ステップ3: プロジェクト再分析**
 ```
-"sample-reference-projectプロジェクトのアーキテクチャと構造を分析してSerenaメモリに保存して"
+mcp__serena__check_onboarding_performed()
 ```
 
 ---
 
-## ✅ 保存すべきメモリ（コードベース理解）
+## 🗑️ 選択的削除
 
-Serenaには**コード関連情報のみ**保存:
+### 個別削除
 
-### 推奨するメモリ内容:
-- ✅ プロジェクト構造 (project_structure)
-- ✅ アーキテクチャパターン (architecture_patterns)
-- ✅ コードスタイル規約 (code_conventions)
-- ✅ 技術スタック情報 (tech_stack)
-- ✅ 主要コンポーネント関係 (component_relationships)
-- ✅ オンボーディング情報 (onboarding_guide)
+```
+mcp__serena__delete_memory("task_completion_checklist")
+```
+
+### 削除推奨対象
+
+- ❌ `task_completion_checklist` - タスク状態
+- ❌ 日付付きメモリ - 一時的な調査結果
+- ❌ `checkpoint_*` - セッション状態
+
+### 保持推奨対象
+
+- ✅ `project_overview` - プロジェクト概要
+- ✅ `code_style` - コードスタイル
+- ✅ `suggested_commands` - 推奨コマンド
 
 ---
 
-## ❌ 保存すべきでないメモリ（タスク/セッション状態）
+## 💡 ユースケース別手順
 
-以下はSerenaに保存しない:
+### 1. プロジェクト最新化（コード変更後）
 
-### 削除推奨:
-- ❌ タスクチェックリスト → TodoWrite
-- ❌ Issue管理情報 → GitHub
-- ❌ セッション進捗 → Session Context
-- ❌ 一時的な調査結果 → 必要ならファイルに保存
-- ❌ ビルド/テスト結果 → ログファイル
-- ❌ 日付付きの調査メモ → claudedocs/
-
----
-
-## 🔍 メモリ内容の分類例
-
-### 現在のメモリを確認して分類:
-
-```
-"Serenaメモリを一覧表示して、各メモリが
- コードベース理解かタスク状態か分類して"
+```bash
+# CLAUDE.md退避
+mv CLAUDE.md CLAUDE.md.bak
 ```
 
-### 分類結果に基づいて削除:
-
 ```
-"タスク状態のメモリだけ削除して、
- コードベース理解のメモリは残して"
-```
+# 古いメモリを削除
+mcp__serena__delete_memory("project_overview")
+mcp__serena__delete_memory("code_style")
 
----
-
-## 💡 ベストプラクティス
-
-### 定期的なクリーンアップ（推奨: 月1回）
-
-1. **メモリ一覧確認**
-2. **タスク状態メモリを削除**
-3. **古い調査結果（2ヶ月以上）を削除**
-4. **コードベース理解メモリのみ保持**
-
-### プロジェクト開始時
-
-```
-"新しいプロジェクトをSerenaにオンボーディング:
- - プロジェクト構造を分析
- - アーキテクチャパターンを抽出
- - コードスタイルを理解
- - 主要コンポーネントを把握"
+# 再オンボーディング
+mcp__serena__onboarding()
 ```
 
-### プロジェクト終了時
+```bash
+# CLAUDE.md復元
+mv CLAUDE.md.bak CLAUDE.md
+```
+
+### 2. タスク状態のみクリア
 
 ```
-"完了したプロジェクトのSerenaメモリを削除"
+mcp__serena__delete_memory("task_completion_checklist")
+# project_overview等は保持、CLAUDE.md退避不要
+```
+
+### 3. 完全リセット（新規開始）
+
+```bash
+mv CLAUDE.md CLAUDE.md.bak
+```
+
+```
+# 全メモリ削除後
+mcp__serena__onboarding()
+```
+
+```bash
+mv CLAUDE.md.bak CLAUDE.md
+claude init  # CLAUDE.mdを最新化
 ```
 
 ---
 
-## 🚨 注意事項
+## 🔧 自然言語でのリクエスト
 
-### メモリ削除前の確認
+MCPツールを直接呼ばない場合の表現:
 
-必ず内容を確認してから削除:
-```
-"削除前に [メモリ名] の内容を確認したい"
-```
+| やりたいこと | 自然言語リクエスト |
+|--------------|-------------------|
+| メモリ一覧 | "Serenaメモリを一覧表示して" |
+| メモリ読み込み | "project_overviewメモリを見せて" |
+| メモリ削除 | "task_completion_checklistメモリを削除して" |
+| 全削除 | "全Serenaメモリを削除して" |
+| 再オンボーディング | "CLAUDE.mdを退避してSerenaのonboardingを実行して" |
+
+---
+
+## ⚠️ 注意事項
 
 ### 復元不可
 
 削除したメモリは復元できません。重要な情報は:
-- claudedocs/ にMarkdownで保存
+- `claudedocs/` にMarkdownで保存
 - Git commitメッセージに記録
-- ドキュメントファイルとして永続化
+
+### メモリの保存場所
+
+```
+.serena/memories/
+├── project_overview.md
+├── code_style.md
+├── suggested_commands.md
+└── task_completion_checklist.md
+```
+
+### gtr-startとの連携
+
+`gtr-start` 実行時、masterの `.serena/memories/` がworktreeにコピーされます。
+masterのmemoriesを最新化すると、以降のworktreeも最新状態で開始できます。
 
 ---
 
@@ -181,25 +231,32 @@ Serenaには**コード関連情報のみ**保存:
 
 - `/sc:load` - Serenaからプロジェクトコンテキストを読み込み
 - `/sc:save` - 重要なプロジェクト知見をSerenaに保存
-- `/sc:reflect` - タスク振り返りと検証（Serena分析機能使用）
+- `claude init` - CLAUDE.mdを生成/更新
 
 ---
 
 ## 🎯 クイックリファレンス
 
 ```bash
-# メモリ確認
-"Serenaメモリ一覧"
+# 完全リセット（推奨手順）
+mv CLAUDE.md CLAUDE.md.bak
+```
 
-# タスク状態削除
-"タスク関連のSerenaメモリを削除"
+```
+mcp__serena__list_memories()
+mcp__serena__delete_memory("project_overview")
+mcp__serena__delete_memory("code_style")
+mcp__serena__delete_memory("suggested_commands")
+mcp__serena__delete_memory("task_completion_checklist")
+mcp__serena__onboarding()
+```
 
-# 全削除
-"全Serenaメモリを削除"
+```bash
+mv CLAUDE.md.bak CLAUDE.md
+claude init  # オプション: CLAUDE.md最新化
+```
 
-# 再オンボーディング
-"プロジェクトを再オンボーディング"
-
-# 分類と選択削除
-"メモリを分類してタスク状態のみ削除"
+```
+# 部分クリア（CLAUDE.md退避不要）
+mcp__serena__delete_memory("task_completion_checklist")
 ```
