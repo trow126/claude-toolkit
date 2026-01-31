@@ -33,7 +33,15 @@ Call MCP tool: `mcp__serena__onboarding`
 mv CLAUDE.md.bak CLAUDE.md
 ```
 
-### Step 5: 完了報告
+### Step 5: CLAUDE.md最新化（オプション）
+
+```bash
+claude init
+```
+
+最新のSerena memoriesを参照してCLAUDE.mdを更新。
+
+### Step 6: 完了報告
 
 - 削除したメモリ数
 - 新規作成されたメモリ
