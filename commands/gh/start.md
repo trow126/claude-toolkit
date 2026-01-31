@@ -106,7 +106,6 @@ Claude:
 
 - `/gh:issue` - Issue管理（作成・クローズ）
 - `/gh:review` - CodeRabbitレビュー対応
-- `/gh:gtr-start` - Git Worktree統合
 
 ---
 
