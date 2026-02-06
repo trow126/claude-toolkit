@@ -5,4 +5,5 @@
 - Incremental commits with meaningful messages
 - Always `git diff` before staging
 - Commit before risky operations for rollback
-- Descriptive commit messages, avoid "fix", "update", "changes"
+- Conventional Commits format (fix:, feat:, docs:, etc.) with descriptive body
+- Avoid vague messages like "fix bug", "update code", "changes"

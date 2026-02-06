@@ -12,6 +12,8 @@
 - Prefer batch operations with rollback capability
 
 ## Compound Commands
-- Avoid `&&`, `||`, `;`, `|` in Bash commands (causes permission pollution)
+- Avoid `&&`, `||`, `;`, `|` in Bash commands
+  - Reason: Permission check applies to first command only; subsequent commands bypass allowlist
+  - Ref: https://github.com/anthropics/claude-code/issues/16180 (Open)
 - Use parallel tool calls for independent operations
 - Use native tools: Grep over `grep`, Glob over `find`, Read over `cat`

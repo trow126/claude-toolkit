@@ -1,7 +1,7 @@
 # Workflow Rules
 
 ## Task Pattern
-Understand > Plan > TodoWrite (3+ tasks) > Execute > Track > Validate
+Understand > Plan > TaskCreate (3+ tasks) > Execute > Track > Validate
 
 ## Planning
 - Identify parallelizable operations during planning
