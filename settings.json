@@ -1,25 +1,5 @@
 {
   "permissions": {
-    "deny": [
-      "Read(.env)",
-      "Read(.env.*)",
-      "Read(**/.env)",
-      "Read(**/.env.*)",
-      "Read(**/secrets/**)",
-      "Read(**/*credential*)",
-      "Read(**/*secret*)",
-      "Bash(rm -rf /)",
-      "Bash(rm -rf ~)",
-      "Bash(rm -rf /*)",
-      "Bash(rm -rf .)",
-      "Bash(> /dev/sd*)",
-      "Bash(dd if=*of=/dev/sd*)"
-    ],
-    "ask": [
-      "Bash(rm:*)",
-      "Bash(chmod:*)",
-      "Bash(chown:*)"
-    ],
     "allow": [
       "Read:*",
       "Glob:*",
@@ -115,6 +95,26 @@
       "WebFetch(domain:www.anthropic.com)",
       "WebFetch(domain:docs.coderabbit.ai)",
       "SlashCommand(/gh:usage)"
+    ],
+    "deny": [
+      "Read(.env)",
+      "Read(.env.*)",
+      "Read(**/.env)",
+      "Read(**/.env.*)",
+      "Read(**/secrets/**)",
+      "Read(**/*credential*)",
+      "Read(**/*secret*)",
+      "Bash(rm -rf /)",
+      "Bash(rm -rf ~)",
+      "Bash(rm -rf /*)",
+      "Bash(rm -rf .)",
+      "Bash(> /dev/sd*)",
+      "Bash(dd if=*of=/dev/sd*)"
+    ],
+    "ask": [
+      "Bash(rm:*)",
+      "Bash(chmod:*)",
+      "Bash(chown:*)"
     ]
   },
   "model": "opus",
@@ -147,5 +147,6 @@
   },
   "enabledPlugins": {
     "code-simplifier@claude-plugins-official": true
-  }
+  },
+  "language": "日本語"
 }
