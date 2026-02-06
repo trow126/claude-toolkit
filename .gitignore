@@ -42,3 +42,4 @@ plans/
 .serena/
 tasks/**/.lock
 tasks/**/*.json
+usage-data/facets/*.json
