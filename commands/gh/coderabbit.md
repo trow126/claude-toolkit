@@ -1,6 +1,6 @@
 ---
 name: coderabbit
-description: "Python向け統合コードレビュー。Quality/Security/Performance/Architecture + CodeRabbitパターンを全検出"
+description: "Python向け統合コードレビュー。Quality/Security/Performance/Architecture/Anti-Fallback + CodeRabbitパターンを全検出"
 ---
 
 # /gh:coderabbit - 統合コードレビュー
@@ -103,6 +103,14 @@ Tools:
   - Grep: "MIN_CELLS\\s*=\\s*\\d+" (Off-by-one候補)
   - Grep: "\\[\\d+\\]" (固定インデックスアクセス)
   - Grep: "def __init__\\([^)]*\\):" (-> None欠落候補)
+
+  # Anti-Fallback ドメイン
+  - Grep: "except\\s+\\w*(?:Exception|Error).*:\\s*(?:return|pass)" (catch-all + デフォルト返却/握りつぶし)
+  - Grep: "except\\s*:\\s*(?:pass|return|continue)" (bare except + 握りつぶし)
+  - Grep: "getattr\\(.*,.*,.*\\)" (getattr 3引数 - サイレントフォールバック候補)
+  - Grep: "\\.get\\(.*,\\s*(?:None|False|0|\\[\\]|\\{\\}|''|\"\")" (dict.get + デフォルト値 - 必須設定値候補)
+  - Grep: "or\\s+(?:default_|fallback_|FALLBACK)" (明示的フォールバック変数)
+  - Grep: "except.*(?:Exception|Error).*:\\s*logger\\.(?:warning|debug)" (例外ダウングレード候補)
 ```
 
 ### Phase 3: Evaluate（逐次実行）
@@ -111,10 +119,10 @@ Tools:
 
 ```yaml
 評価基準:
-  Critical: 実行時エラー、セキュリティ脆弱性
-  High: データ破損リスク、パフォーマンス問題
-  Medium: 保守性問題、型安全性
-  Low: スタイル、ドキュメント
+  Critical: 実行時エラー、セキュリティ脆弱性、エラー完全消失(except:pass)
+  High: データ破損リスク、パフォーマンス問題、catch-all+デフォルト返却(根本原因隠蔽)
+  Medium: 保守性問題、型安全性、getattr/dict.getフォールバック(意図確認要)
+  Low: スタイル、ドキュメント、明示的フォールバック変数(命名問題)
   
 アクション:
   1. 重要度分類（Critical > High > Medium > Low）
@@ -137,6 +145,7 @@ Tools:
 - Ruff検出: Y件
 - Vulture検出: V件（Dead Code）
 - パターン検出: Z件
+- Anti-Fallback検出: F件
 - 重要度: Critical X / High Y / Medium Z / Low W
 
 ### Critical Issues
@@ -221,6 +230,25 @@ Tools:
 | `__init__` 戻り値型 | Grep: def __init__ without -> None | ANN204 |
 | `Path` vs `str \| Path` | Grep: `: Path[^|]` | API一貫性 |
 
+### Anti-Fallback ドメイン
+
+| パターン | 検出方法 | 重要度 | 説明 |
+|---------|---------|--------|------|
+| エラー握りつぶし | Grep: `except.*: pass` | Critical | エラー情報の完全消失 |
+| bare except | Grep: `except:` (型指定なし) | Critical | 全例外を無差別キャッチ |
+| catch-all + デフォルト返却 | Grep: `except Exception.*: return None` | High | 根本原因の隠蔽 |
+| 例外ダウングレード | Grep: `except.*Error.*: logger.warning` | High | errorレベルで記録すべき |
+| getattr フォールバック | Grep: `getattr(obj, attr, default)` | Medium | 属性欠落を隠蔽する可能性 |
+| dict.get デフォルト値 | Grep: `.get(key, None\|False\|0)` | Medium | 必須設定値なら`dict[key]`を使用 |
+| 明示的フォールバック変数 | Grep: `or default_\|fallback_` | Low | 命名で意図は明確だが要確認 |
+
+**許容ケース**（誤検知として除外）:
+
+- オプション設定値の `dict.get(key, default)` — 明示的にオプショナルと判断できる場合
+- UI/表示系の `getattr` — 表示崩れ防止のgraceful degradation
+- テストコード内のフォールバック — テストヘルパーでの使用
+- `logging.getLogger` 等のライブラリ標準パターン
+
 ### テスト品質
 
 | パターン | 検出対象 | 説明 |
@@ -235,7 +263,7 @@ Tools:
 |-------|-------|----------|
 | 0 | Read, Glob | 逐次 |
 | 1 | Bash (ruff, vulture) | 逐次 |
-| 2 | Grep ×10-15 | **並列** |
+| 2 | Grep ×16-21 | **並列** |
 | 3 | 内部処理 | 逐次 |
 | 4 | 出力生成 | 逐次 |
 
@@ -270,7 +298,7 @@ Tools:
 
 - `ruff check` を実行してRuffルール違反を検出
 - `vulture` を実行してデッドコード（未使用関数/クラス/変数）を検出
-- 5ドメイン（Quality/Security/Performance/Architecture/Dead Code）のパターン検出
+- 6ドメイン（Quality/Security/Performance/Architecture/Dead Code/Anti-Fallback）のパターン検出
 - CodeRabbitが指摘するパターンを手動で検出
 - LEARNINGS.md との照合と新規パターン提案
 - 重要度に基づいた優先度付け

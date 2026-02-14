@@ -6,6 +6,13 @@
 - No mock objects, placeholders, or stub implementations
 - All generated code must be production-ready
 
+## No Fallback Policy
+- No silent error swallowing: `except Exception: pass` or `except: return None` is prohibited
+- No catch-all with default return: exceptions must be handled explicitly or propagated
+- No `getattr(obj, attr, silent_default)` for hiding missing attributes — fail loudly
+- No `dict.get(key, fallback)` for required config values — use `dict[key]` and let it raise
+- Allowed exceptions: optional/cosmetic features, graceful degradation with explicit logging
+
 ## Test Implementation
 - Every feature/fix includes corresponding tests
 - New code must not reduce test coverage
