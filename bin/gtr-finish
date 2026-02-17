@@ -1,0 +1,402 @@
+#!/bin/bash
+# gtr-finish - PRマージ後のクリーンアップ
+# Usage: gtr-finish <issue-number>
+#
+# このスクリプトは以下を自動実行:
+# 1. 振り返り生成（CodeRabbitレビュー分析含む）
+# 1.5. technical_debt.md マージ（worktree → main repo）
+# 2. Serena unregistration
+# 3. Worktree削除
+# 4. ローカルブランチ削除
+# 5. origin同期 (fetch --prune, pull) ※事前に stash
+# 6. claudedocs をコミット+プッシュ（learnings.md + technical_debt.md）
+# 7. Serena checkpoint削除（オプション）
+# 8. brainstormファイル削除（オプション）
+
+set -e
+
+show_help() {
+    echo "gtr-finish - PRマージ後のクリーンアップ"
+    echo ""
+    echo "Usage: gtr-finish <issue-number> [options]"
+    echo ""
+    echo "Options:"
+    echo "  -h, --help       このヘルプを表示"
+    echo "  -f, --force      確認なしで実行"
+    echo "  --no-retro       振り返り生成をスキップ"
+    echo "  --keep-memory    Serenaメモリを保持"
+    echo "  --keep-brainstorm brainstormファイルを保持"
+    echo "  --no-stash       未コミット変更があっても stash しない"
+    echo ""
+    echo "Examples:"
+    echo "  gtr-finish 42           # Issue #42 のクリーンアップ"
+    echo "  gtr-finish 42 -f        # 確認なしで実行"
+    echo ""
+    echo "Workflow:"
+    echo "  1. PRマージ後に実行"
+    echo "  2. worktree・ブランチ削除"
+    echo "  3. masterを最新に同期（未コミット変更は自動 stash）"
+}
+
+# デフォルト値
+FORCE=false
+NO_RETRO=false
+KEEP_MEMORY=false
+KEEP_BRAINSTORM=false
+NO_STASH=false
+ISSUE_NUMBER=""
+
+# 引数解析
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        -h|--help)
+            show_help
+            exit 0
+            ;;
+        -f|--force)
+            FORCE=true
+            shift
+            ;;
+        --no-retro)
+            NO_RETRO=true
+            shift
+            ;;
+        --keep-memory)
+            KEEP_MEMORY=true
+            shift
+            ;;
+        --keep-brainstorm)
+            KEEP_BRAINSTORM=true
+            shift
+            ;;
+        --no-stash)
+            NO_STASH=true
+            shift
+            ;;
+        *)
+            if [[ -z "$ISSUE_NUMBER" ]] && [[ "$1" =~ ^[0-9]+$ ]]; then
+                ISSUE_NUMBER="$1"
+            else
+                echo "Error: Unknown option or invalid issue number: $1"
+                show_help
+                exit 1
+            fi
+            shift
+            ;;
+    esac
+done
+
+# Issue番号チェック
+if [ -z "$ISSUE_NUMBER" ]; then
+    echo "Error: Issue number required"
+    show_help
+    exit 1
+fi
+
+WORKTREE_NAME="issue-${ISSUE_NUMBER}"
+BRANCH_NAME="issue-${ISSUE_NUMBER}"
+
+# 現在のリポジトリルートを取得
+REPO_ROOT=$(git rev-parse --show-toplevel 2>/dev/null)
+if [ -z "$REPO_ROOT" ]; then
+    echo "Error: Not in a git repository"
+    exit 1
+fi
+
+# worktree内から実行された場合は警告
+CURRENT_DIR=$(pwd)
+if [[ "$CURRENT_DIR" == *"-worktrees/"* ]]; then
+    echo "⚠️  Warning: Running from inside a worktree"
+    echo "   Recommend: cd to main repo first"
+    echo ""
+fi
+
+REPO_NAME=$(basename "$REPO_ROOT")
+WORKTREES_DIR="$(dirname "$REPO_ROOT")/${REPO_NAME}-worktrees"
+WORKTREE_PATH="${WORKTREES_DIR}/${WORKTREE_NAME}"
+
+# main repo のパスを取得（worktree 内から実行された場合も対応）
+MAIN_REPO=$(git worktree list --porcelain | grep '^worktree ' | head -1 | sed 's/^worktree //')
+
+echo "🧹 Cleanup for Issue #${ISSUE_NUMBER}"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+# PR/Issue状態確認
+echo ""
+echo "📋 Checking status..."
+
+PR_STATE=$(gh pr list --head "$BRANCH_NAME" --json state --jq '.[0].state // "NONE"' 2>/dev/null || echo "ERROR")
+ISSUE_STATE=$(gh issue view "$ISSUE_NUMBER" --json state --jq '.state' 2>/dev/null || echo "ERROR")
+
+echo "   PR state: $PR_STATE"
+echo "   Issue #${ISSUE_NUMBER}: $ISSUE_STATE"
+
+# PRがマージされていない場合は警告
+if [ "$PR_STATE" != "MERGED" ] && [ "$PR_STATE" != "NONE" ]; then
+    echo ""
+    echo "⚠️  Warning: PR is not merged (state: $PR_STATE)"
+    if [ "$FORCE" != true ]; then
+        read -p "Continue anyway? [y/N] " -n 1 -r
+        echo
+        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+            echo "Aborted."
+            exit 1
+        fi
+    fi
+fi
+
+# 確認プロンプト（--force でない場合）
+if [ "$FORCE" != true ]; then
+    echo ""
+    echo "Will perform:"
+    [ "$NO_RETRO" != true ] && echo "  • Generate retrospective with CodeRabbit analysis"
+    [ -f "${WORKTREE_PATH}/claudedocs/technical_debt.md" ] && echo "  • Merge technical_debt.md to main repo"
+    [ -d "$WORKTREE_PATH" ] && echo "  • Remove worktree: $WORKTREE_PATH"
+    echo "  • Delete local branch: $BRANCH_NAME (if exists)"
+    echo "  • Sync with origin (auto-stash if needed)"
+    echo "  • Commit and push claudedocs (learnings.md, technical_debt.md)"
+    [ "$KEEP_MEMORY" != true ] && echo "  • Clean Serena memories for issue-${ISSUE_NUMBER}"
+    [ "$KEEP_BRAINSTORM" != true ] && echo "  • Clean brainstorm files (if any)"
+    echo ""
+    read -p "Proceed? [Y/n] " -n 1 -r
+    echo
+    if [[ $REPLY =~ ^[Nn]$ ]]; then
+        echo "Aborted."
+        exit 1
+    fi
+fi
+
+echo ""
+
+# 1. 振り返り生成（CodeRabbitレビュー分析含む）
+# main repo の claudedocs/ に出力（worktree 削除後も残るように）
+LEARNINGS_FILE="${MAIN_REPO}/claudedocs/learnings.md"
+RETRO_GENERATED=false
+
+if [ "$NO_RETRO" != true ]; then
+    echo "📝 Generating retrospective..."
+    mkdir -p "$(dirname "$LEARNINGS_FILE")"
+    if command -v gh-retrospective.sh &> /dev/null; then
+        gh-retrospective.sh "$ISSUE_NUMBER" --output "$LEARNINGS_FILE" --quiet && \
+            RETRO_GENERATED=true && \
+            echo "   ✅ Retrospective saved to claudedocs/learnings.md" || \
+            echo "   ⚠️  Retrospective generation failed (continuing cleanup)"
+    else
+        echo "   ⚠️  gh-retrospective.sh not found (skipping)"
+    fi
+fi
+
+# 1.5. technical_debt.md マージ（worktree削除前に実行）
+WORKTREE_DEBT_FILE="${WORKTREE_PATH}/claudedocs/technical_debt.md"
+MAIN_DEBT_FILE="${MAIN_REPO}/claudedocs/technical_debt.md"
+DEBT_MERGED=false
+
+if [ -f "$WORKTREE_DEBT_FILE" ]; then
+    echo "📋 Merging technical_debt.md..."
+    mkdir -p "$(dirname "$MAIN_DEBT_FILE")"
+    if [ -f "$MAIN_DEBT_FILE" ]; then
+        # 既存ファイルに追記
+        echo "" >> "$MAIN_DEBT_FILE"
+        cat "$WORKTREE_DEBT_FILE" >> "$MAIN_DEBT_FILE"
+    else
+        # 新規作成
+        cp "$WORKTREE_DEBT_FILE" "$MAIN_DEBT_FILE"
+    fi
+    DEBT_MERGED=true
+    echo "   ✅ technical_debt.md merged to main repo"
+fi
+
+# 2. Serena unregistration (before worktree removal)
+echo "🔧 Unregistering from Serena..."
+if command -v gtr-serena-cleanup.sh &> /dev/null; then
+    gtr-serena-cleanup.sh "$WORKTREE_PATH" "$ISSUE_NUMBER"
+else
+    echo "   ⚠️  gtr-serena-cleanup.sh not found (manual cleanup may be needed)"
+fi
+
+# 3. Worktree削除
+if [ -d "$WORKTREE_PATH" ]; then
+    echo "🗑️  Removing worktree..."
+    git worktree remove "$WORKTREE_PATH" --force 2>/dev/null && \
+        echo "   ✅ Worktree removed" || \
+        echo "   ⚠️  Worktree removal failed (may already be removed)"
+else
+    echo "   ℹ️  Worktree not found (already removed)"
+fi
+
+# 4. ローカルブランチ削除
+echo "🗑️  Deleting local branch..."
+git branch -D "$BRANCH_NAME" 2>/dev/null && \
+    echo "   ✅ Branch deleted: $BRANCH_NAME" || \
+    echo "   ℹ️  Branch not found (already deleted)"
+
+# ========================================
+# 5. origin同期（改善版）
+# ========================================
+echo "🔄 Syncing with origin..."
+cd "$MAIN_REPO"
+
+STASHED=false
+SYNC_SUCCESS=true
+
+# Working directory 状態チェック
+if ! git diff --quiet 2>/dev/null || ! git diff --cached --quiet 2>/dev/null; then
+    echo ""
+    echo "   ⚠️  Main repo has uncommitted changes:"
+    git status --short | sed 's/^/      /'
+    echo ""
+
+    if [ "$NO_STASH" = true ]; then
+        echo "   --no-stash specified, skipping origin sync"
+        SYNC_SUCCESS=false
+    elif [ "$FORCE" = true ]; then
+        echo "   Stashing changes..."
+        if git stash push -m "gtr-finish auto-stash for issue-${ISSUE_NUMBER}"; then
+            STASHED=true
+            echo "   ✅ Changes stashed"
+        else
+            echo "   ❌ Failed to stash changes"
+            SYNC_SUCCESS=false
+        fi
+    else
+        read -p "   Stash changes and continue? [Y/n] " -n 1 -r
+        echo
+        if [[ ! $REPLY =~ ^[Nn]$ ]]; then
+            if git stash push -m "gtr-finish auto-stash for issue-${ISSUE_NUMBER}"; then
+                STASHED=true
+                echo "   ✅ Changes stashed"
+            else
+                echo "   ❌ Failed to stash changes"
+                SYNC_SUCCESS=false
+            fi
+        else
+            echo "   ⚠️  Skipping origin sync (changes preserved)"
+            SYNC_SUCCESS=false
+        fi
+    fi
+fi
+
+# Fetch と Pull
+if [ "$SYNC_SUCCESS" = true ]; then
+    git fetch origin --prune
+
+    # checkout master/main
+    if ! git checkout master 2>/dev/null && ! git checkout main 2>/dev/null; then
+        echo "   ⚠️  Could not checkout master/main branch"
+        SYNC_SUCCESS=false
+    fi
+
+    # pull with error handling
+    if [ "$SYNC_SUCCESS" = true ]; then
+        PULL_OUTPUT=""
+        if PULL_OUTPUT=$(git pull origin master 2>&1); then
+            echo "   ✅ Synced with origin (master)"
+        elif PULL_OUTPUT=$(git pull origin main 2>&1); then
+            echo "   ✅ Synced with origin (main)"
+        else
+            echo "   ❌ Pull failed:"
+            echo "$PULL_OUTPUT" | sed 's/^/      /'
+            SYNC_SUCCESS=false
+        fi
+    fi
+fi
+
+# Restore stashed changes
+if [ "$STASHED" = true ]; then
+    echo "   Restoring stashed changes..."
+    if git stash pop; then
+        echo "   ✅ Stashed changes restored"
+    else
+        echo "   ⚠️  Failed to restore stash (conflicts may exist)"
+        echo "   Run 'git stash list' to see stashed changes"
+    fi
+fi
+
+if [ "$SYNC_SUCCESS" != true ]; then
+    echo ""
+    echo "   ⚠️  Origin sync incomplete. Please sync manually:"
+    echo "      git stash  # if needed"
+    echo "      git pull origin master"
+    echo "      git stash pop  # if stashed"
+fi
+
+# 6. claudedocs をコミット+プッシュ（learnings.md + technical_debt.md）
+cd "$MAIN_REPO"
+DOCS_TO_COMMIT=""
+
+# learnings.md のチェック
+if [ "$RETRO_GENERATED" = true ] && [ -f "$LEARNINGS_FILE" ]; then
+    if ! git diff --quiet "$LEARNINGS_FILE" 2>/dev/null || ! git diff --cached --quiet "$LEARNINGS_FILE" 2>/dev/null; then
+        DOCS_TO_COMMIT="$DOCS_TO_COMMIT $LEARNINGS_FILE"
+    fi
+fi
+
+# technical_debt.md のチェック
+if [ "$DEBT_MERGED" = true ] && [ -f "$MAIN_DEBT_FILE" ]; then
+    if ! git diff --quiet "$MAIN_DEBT_FILE" 2>/dev/null || ! git diff --cached --quiet "$MAIN_DEBT_FILE" 2>/dev/null; then
+        DOCS_TO_COMMIT="$DOCS_TO_COMMIT $MAIN_DEBT_FILE"
+    fi
+fi
+
+if [ -n "$DOCS_TO_COMMIT" ]; then
+    echo "📤 Committing claudedocs..."
+    git add $DOCS_TO_COMMIT && \
+    git commit -m "docs: update claudedocs for Issue #${ISSUE_NUMBER}
+
+- learnings.md: retrospective
+- technical_debt.md: skipped/rejected review comments
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)" && \
+    git push && \
+    echo "   ✅ claudedocs committed and pushed" || \
+    echo "   ⚠️  Failed to commit/push claudedocs (check manually)"
+else
+    echo "📤 No claudedocs changes to commit"
+fi
+
+# 7. Serenaメモリ削除（オプション）
+if [ "$KEEP_MEMORY" != true ]; then
+    SERENA_DIR="${MAIN_REPO}/.serena/memories"
+    if [ -d "$SERENA_DIR" ]; then
+        echo "🧠 Cleaning Serena memories..."
+        CLEANED=0
+        for pattern in "checkpoint_issue_${ISSUE_NUMBER}" "issue_${ISSUE_NUMBER}_" "work_issue_${ISSUE_NUMBER}"; do
+            while IFS= read -r -d '' f; do
+                if [ -f "$f" ]; then
+                    rm "$f" && echo "   Deleted: $(basename "$f")"
+                    CLEANED=$((CLEANED + 1))
+                fi
+            done < <(find "$SERENA_DIR" -maxdepth 1 -name "${pattern}*.md" -print0 2>/dev/null)
+        done
+        [ "$CLEANED" -eq 0 ] && echo "   ℹ️  No memories found for issue-${ISSUE_NUMBER}"
+    fi
+fi
+
+# 8. brainstormファイル削除（オプション）
+if [ "$KEEP_BRAINSTORM" != true ]; then
+    BRAINSTORM_DIR="${MAIN_REPO}/claudedocs/brainstorm"
+    if [ -d "$BRAINSTORM_DIR" ]; then
+        echo "📝 Cleaning brainstorm files..."
+        CLEANED=0
+        while IFS= read -r -d '' f; do
+            if [ -f "$f" ]; then
+                rm "$f" && echo "   Deleted: $(basename "$f")"
+                CLEANED=$((CLEANED + 1))
+            fi
+        done < <(find "$BRAINSTORM_DIR" -maxdepth 1 \( -name "*issue*${ISSUE_NUMBER}*.md" -o -name "*_${ISSUE_NUMBER}_*.md" \) -print0 2>/dev/null)
+        [ "$CLEANED" -eq 0 ] && echo "   ℹ️  No brainstorm files found for issue-${ISSUE_NUMBER}"
+    fi
+fi
+
+# 完了サマリー
+echo ""
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+if [ "$SYNC_SUCCESS" = true ]; then
+    echo "✅ Cleanup complete for Issue #${ISSUE_NUMBER}"
+else
+    echo "⚠️  Cleanup completed with warnings for Issue #${ISSUE_NUMBER}"
+fi
+echo ""
+echo "Current status:"
+git branch -v | grep -E "^\*|master|main" | head -3
+echo ""

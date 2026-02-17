@@ -1,0 +1,166 @@
+#!/bin/bash
+# gtr-start - Git Worktree + GitHub Issue 統合ワークフロー
+# Usage: gtr-start <issue-number>
+#
+# このスクリプトは以下を自動実行:
+# 1. git gtr new issue-<number> でワークツリー作成
+# 2. 新しいワークツリーディレクトリへ移動
+# 3. claude "/gh:start <number>" で Issue 作業を開始
+
+set -e
+
+show_help() {
+    echo "gtr-start - Git Worktree + GitHub Issue 統合ワークフロー"
+    echo ""
+    echo "Usage: gtr-start <issue-number> [options]"
+    echo ""
+    echo "Options:"
+    echo "  -h, --help    このヘルプを表示"
+    echo "  -f, --force   未コミット変更があっても続行"
+    echo ""
+    echo "Examples:"
+    echo "  gtr-start 42    # Issue #42 用のワークツリーを作成して作業開始"
+    echo ""
+    echo "Workflow:"
+    echo "  1. git gtr new issue-42 でワークツリー作成"
+    echo "  2. uv sync + symlink (postCreate hook)"
+    echo "  3. Claude Code 起動（ユーザーが操作）"
+    echo ""
+    echo "Related commands:"
+    echo "  gtr-finish 42       # PRマージ後のクリーンアップ"
+    echo "  git gtr list        # ワークツリー一覧"
+    echo "  git gtr rm issue-42 # ワークツリー削除"
+}
+
+# デフォルト値
+FORCE=false
+ISSUE_NUMBER=""
+
+# 引数解析
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        -h|--help)
+            show_help
+            exit 0
+            ;;
+        -f|--force)
+            FORCE=true
+            shift
+            ;;
+        *)
+            if [[ -z "$ISSUE_NUMBER" ]] && [[ "$1" =~ ^[0-9]+$ ]]; then
+                ISSUE_NUMBER="$1"
+            else
+                echo "Error: Unknown option or invalid issue number: $1"
+                show_help
+                exit 1
+            fi
+            shift
+            ;;
+    esac
+done
+
+# Issue番号チェック
+if [ -z "$ISSUE_NUMBER" ]; then
+    echo "Error: Issue number required"
+    show_help
+    exit 1
+fi
+
+WORKTREE_NAME="issue-${ISSUE_NUMBER}"
+
+# 現在のリポジトリルートを取得
+REPO_ROOT=$(git rev-parse --show-toplevel 2>/dev/null)
+if [ -z "$REPO_ROOT" ]; then
+    echo "Error: Not in a git repository"
+    exit 1
+fi
+
+# ========================================
+# 🔒 メインの working directory 状態チェック
+# ========================================
+# worktree内から実行された場合はスキップ
+CURRENT_DIR=$(pwd)
+if [[ "$CURRENT_DIR" != *"-worktrees/"* ]]; then
+    if ! git diff --quiet 2>/dev/null || ! git diff --cached --quiet 2>/dev/null; then
+        echo ""
+        echo "⚠️  Warning: Main repo has uncommitted changes"
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        git status --short
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        echo ""
+        echo "These changes may cause conflicts when running gtr-finish later."
+        echo "Recommendation: Commit or stash your changes first."
+        echo ""
+
+        if [ "$FORCE" = true ]; then
+            echo "⚡ --force specified, continuing anyway..."
+        else
+            read -p "Continue anyway? [y/N] " -n 1 -r
+            echo
+            if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+                echo ""
+                echo "Aborted. Options:"
+                echo "  • git stash push -m 'before gtr-start'"
+                echo "  • git commit -am 'WIP'"
+                echo "  • gtr-start $ISSUE_NUMBER --force"
+                exit 1
+            fi
+        fi
+        echo ""
+    fi
+fi
+
+# ワークツリーの親ディレクトリを決定
+# git-worktree-runner のデフォルト: ../repo-worktrees/
+REPO_NAME=$(basename "$REPO_ROOT")
+WORKTREES_DIR="$(dirname "$REPO_ROOT")/${REPO_NAME}-worktrees"
+WORKTREE_PATH="${WORKTREES_DIR}/${WORKTREE_NAME}"
+
+echo "🔧 Creating worktree for Issue #${ISSUE_NUMBER}..."
+
+# ワークツリーが既に存在するかチェック
+if [ -d "$WORKTREE_PATH" ]; then
+    echo "✅ Worktree already exists: ${WORKTREE_PATH}"
+    echo "📂 Changing to worktree directory..."
+    cd "$WORKTREE_PATH"
+else
+    # git gtr new でワークツリー作成
+    echo "📁 Running: git gtr new ${WORKTREE_NAME}"
+    git gtr new "$WORKTREE_NAME"
+
+    # ワークツリーディレクトリへ移動
+    if [ -d "$WORKTREE_PATH" ]; then
+        echo "📂 Changing to: ${WORKTREE_PATH}"
+        cd "$WORKTREE_PATH"
+    else
+        echo "Error: Worktree directory not found at ${WORKTREE_PATH}"
+        echo "Please check git-worktree-runner configuration"
+        exit 1
+    fi
+fi
+
+# Symlink .claude/settings.local.json for outputStyle/spinnerVerbs
+if [ -f "${REPO_ROOT}/.claude/settings.local.json" ]; then
+    mkdir -p "${WORKTREE_PATH}/.claude"
+    ln -sf "${REPO_ROOT}/.claude/settings.local.json" "${WORKTREE_PATH}/.claude/settings.local.json"
+    echo "🔗 Linked .claude/settings.local.json"
+fi
+
+# Register with Serena MCP
+echo "🔧 Registering with Serena..."
+if command -v gtr-serena-register.sh &> /dev/null; then
+    gtr-serena-register.sh "$WORKTREE_PATH" "$REPO_NAME" "$ISSUE_NUMBER"
+else
+    echo "   ⚠️  gtr-serena-register.sh not found (Serena may use wrong project)"
+fi
+
+echo ""
+echo "🚀 Starting Claude Code..."
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo ""
+echo "💡 Hint: /gh:start ${ISSUE_NUMBER}"
+echo ""
+
+# Claude Code を起動（プロンプトなし）
+exec claude
