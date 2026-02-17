@@ -1,0 +1,302 @@
+---
+name: knowledge-audit
+description: >
+  Audit and compress claudedocs/learnings.md and technical_debt.md files.
+  Removes redundancy, deduplicates patterns, and produces compressed pattern catalogs.
+  Use when files are bloated, on "棚卸し", "audit learnings", "compress learnings",
+  "prune learnings", "audit technical debt", or "knowledge audit".
+---
+
+# Knowledge Audit Skill
+
+claudedocs/learnings.md と technical_debt.md の棚卸し・圧縮を実行する。
+
+## When to Use
+
+- `棚卸し` (standalone or with project name)
+- `audit learnings` / `compress learnings` / `prune learnings`
+- `audit technical debt`
+- `knowledge audit`
+
+---
+
+## Scope Detection
+
+1. **Explicit**: `棚卸し my-project` → target that project
+2. **Auto-detect**: cwd contains `claudedocs/learnings.md` → target current project
+3. **Discovery**: List all `claudedocs/learnings.md` and `technical_debt.md` with line counts, ask user to choose
+
+```bash
+find ~ -maxdepth 5 -name "learnings.md" -path "*/claudedocs/*" 2>/dev/null
+find ~ -maxdepth 5 -name "technical_debt.md" -path "*/claudedocs/*" 2>/dev/null
+```
+
+---
+
+## Mode A: learnings.md Audit
+
+### Phase 1: Analysis (Read-Only)
+
+#### Step 1: Detect File State
+
+| State | Detection | Example |
+|-------|-----------|---------|
+| A: Raw only | No `# パターンカタログ` or numbered `# 1.` sections; only `## Issue #N:` entries | sample-solidity-project |
+| B: Hybrid | Has pattern catalog section AND raw issue log entries below | sample-model-project, sample-ml-project |
+| C: Compressed | Has `v2.0 (Compressed)` or version header; no raw issue entries | sample-reference-project (no action needed) |
+
+#### Step 2: Classify Each Issue Entry
+
+Parse `## Issue #N:` entries and classify:
+
+| Category | Rule | Action |
+|----------|------|--------|
+| EMPTY | All retrospective fields blank, CodeRabbit = 0 | DELETE |
+| BOILERPLATE | Has CodeRabbit data but retrospective is empty template | DELETE (extract CodeRabbit data first) |
+| DUPLICATE | Findings match existing pattern catalog entries (same Ruff rule, same bug pattern) | MERGE issue reference into existing pattern |
+| EXTRACT | Contains novel pattern, specific bug fix, estimation data, or reusable code reference | EXTRACT to new pattern catalog entry |
+
+#### Step 3: Check Global Promotion
+
+Compare extracted patterns against `~/.claude/LEARNINGS.md`:
+- **Promote if**: Pattern appears in 2+ projects AND is language/framework-level (Ruff rules, Python idioms, async patterns)
+- **Do NOT promote**: Domain-specific patterns (horse racing, DeFi, ML training specifics)
+
+#### Step 4: Generate Audit Report
+
+```markdown
+## 棚卸し分析レポート (YYYY-MM-DD)
+
+### 対象: [project]/claudedocs/learnings.md
+### ファイル状態: [A/B/C]
+
+| 指標 | Before | After (予測) | 削減率 |
+|------|--------|-------------|--------|
+| 行数 | N | ~M | X% |
+| Issueエントリ数 | N | 0 (索引化) | 100% |
+| パターンカタログ項目 | N | M (+Δ new) | - |
+
+### 処理内訳
+
+| 分類 | 件数 | 対象 |
+|------|------|------|
+| 空エントリ削除 | N件 | Issue #X, #Y, #Z... |
+| 重複パターン統合 | N件 | G004 (x5), TRY401 (x3)... |
+| 新規パターン抽出 | N件 | [Pattern descriptions] |
+| グローバル昇格候補 | N件 | [Patterns found in 2+ projects] |
+```
+
+#### Step 5: Ask for Confirmation
+
+Display the audit report. Ask user to confirm before proceeding to Phase 2.
+
+### Phase 2: Compression (Write)
+
+**CRITICAL: UTF-8 safety**. All learnings files contain Japanese. Use **Serena MCP** `replace_content` or **Bash** `sed`. NEVER use Claude Code native Edit/Write on Japanese files.
+
+#### Step 0: Backup
+
+```bash
+cp claudedocs/learnings.md claudedocs/learnings.md.bak.$(date +%Y-%m-%d)
+```
+
+If inside a git repo, check `git status claudedocs/learnings.md` first. Warn if uncommitted changes.
+
+#### Step 1: Build Compressed File
+
+Follow a compressed v2.0 reference format (`~/projects/reference-project-a/claudedocs/learnings.md`):
+
+```markdown
+# Project Learnings vN.0 (Compressed)
+
+[Project description]
+
+> **vN.0 変更点**: XX,000トークン → ~YY,000トークン (ZZ%削減)
+> - パターンカタログ形式に再編成
+> - 空テンプレート・重複エントリ削除
+> - コード例を参照形式に変換
+
+---
+
+# 1. パターンカタログ
+
+## 1.1 [Category Name]
+
+### P1: [Pattern Name] [#issue1, #issue2]
+
+**問題**: [One-line problem description]
+
+**解決策**:
+```code
+[Minimal code example or file:line reference]
+```
+
+**参照**: [file.py:line, file2.py]
+
+---
+
+# 2. 見積もりリファレンス
+
+| タスクタイプ | 典型時間 | 要因 | 参照Issue |
+|-------------|----------|------|-----------|
+| ... | ... | ... | ... |
+
+# 3. Issue索引
+
+| # | 日付 | 概要 | 適用パターン |
+|---|------|------|-------------|
+| 42 | 2026-01-15 | Feature X | P1, P3 |
+| ... | ... | ... | ... |
+
+# 4. 再利用ファイル参照
+
+| ファイル | 機能 | 参照Issue |
+|----------|------|-----------|
+| ... | ... | ... |
+
+# 5. クイックリファレンス
+```
+
+#### Pattern Categorization Heuristics
+
+| Content Signal | Category Name |
+|---------------|---------------|
+| CodeRabbit, Ruff, linter | コード品質・リンター対応 |
+| IndexError, KeyError, type | 型・アクセス安全性 |
+| async, Event, Queue | 非同期パターン |
+| test, pytest, edge case | テスト設計 |
+| config, YAML, path | 設定・パス管理 |
+| performance, optimize | パフォーマンス |
+| [project-specific terms] | [Project-specific category] |
+
+#### Step 2: Write Compressed File
+
+Use Serena MCP `create_text_file` or Bash to write the new file.
+
+#### Step 3: Update Global LEARNINGS.md
+
+If promotion candidates exist:
+1. Read `~/.claude/LEARNINGS.md`
+2. Check if pattern already exists
+3. Append as concise checklist item (not verbose entry)
+
+#### Step 4: Insert Compression Note
+
+Append to end of compressed learnings.md:
+
+```markdown
+<!-- COMPRESSION NOTE: knowledge-audit で圧縮済み。
+新規エントリはパターンカタログ形式で追記:
+### PN: [パターン名] [#issue]
+**問題**: ...
+**解決策**: ...
+**参照**: ...
+-->
+```
+
+#### Step 5: Completion Report
+
+```markdown
+## 棚卸し完了 (YYYY-MM-DD)
+
+| 指標 | Before | After | 削減率 |
+|------|--------|-------|--------|
+| 行数 | N | M | X% |
+
+### 変更内容
+- パターンカタログ: N → M (+Δ 新規抽出)
+- 空エントリ削除: N件
+- 重複統合: N件
+- Issue索引: N件を1テーブルに集約
+
+### バックアップ
+- claudedocs/learnings.md.bak.YYYY-MM-DD
+```
+
+---
+
+## Mode B: technical_debt.md Audit
+
+**方針**: 各項目を「実装すべきか」判断してから削減。ステータス更新だけでなくアクション判断を含む。
+
+### Phase 1: Item Evaluation
+
+#### Step 1: Parse Current Entries
+
+Read `claudedocs/technical_debt.md` and identify:
+- 未解決スキップ項目 (open skip items)
+- 却下アーカイブ (rejected archive)
+- 解決済みアーカイブ (resolved archive)
+
+#### Step 2: Evaluate Each Unresolved Item
+
+For each unresolved item:
+
+1. **Check Issue/PR status**:
+```bash
+gh issue view <number> --json state,closedAt
+gh pr view <number> --json state,mergedAt
+```
+
+2. **Check if code pattern still exists**:
+```bash
+grep -n "pattern" path/to/file.py
+```
+
+3. **Classify with action judgment**:
+
+| Result | Classification | Action |
+|--------|---------------|--------|
+| Issue closed, code fixed | 解決済み | Move to archive |
+| Code deleted entirely | 解決済み (該当なし) | Move to archive |
+| Still valid, should implement | 対応すべき | Propose Issue creation |
+| Valid but YAGNI | 方針判断 | Move to project policy section |
+| Stale / cannot reproduce | 削除 | Remove with note |
+
+#### Step 3: Present Results to User
+
+Show classification results and ask user to confirm each action judgment.
+
+### Phase 2: Update
+
+1. Execute user-confirmed actions (move items, update statuses)
+2. For items classified as "対応すべき", propose `gh issue create` commands
+3. Add audit entry following the mature audit format:
+
+```markdown
+### 第N回棚卸し（YYYY-MM-DD）
+
+PR #AAA〜#BBB の追跡項目を精査:
+
+| 分類 | 件数 | 対応 |
+|------|------|------|
+| 新規追記 → 解決済み | N件 | [details] |
+| 新規追記 → 却下アーカイブ | N件 | [details] |
+| 未解決 → 対応すべき (Issue提案) | N件 | [details] |
+| 未解決 → YAGNI (方針記録) | N件 | [details] |
+| 未解決 → 現状維持 | N件 | [details] |
+```
+
+4. Update summary table and `最終更新` date
+
+**Reference model**: `~/projects/model-research/claudedocs/technical_debt.md` (3 audit rounds documented)
+
+---
+
+## Safety
+
+- **Backup**: Always `cp` before modification
+- **User confirmation**: Show audit report before any writes
+- **UTF-8 bug**: Use Serena MCP or Bash sed for Japanese files; NEVER native Edit/Write
+- **Git check**: `git status` before modification if in a repo
+- **No data loss**: Issue index preserves all issue references; patterns are compressed, not deleted
+
+---
+
+## Reference Models
+
+| Purpose | File | Lines |
+|---------|------|-------|
+| Compressed learnings | `~/projects/reference-project-a/claudedocs/learnings.md` | 635 |
+| Mature technical debt audit | `~/projects/model-research/claudedocs/technical_debt.md` | 254 |
+| Global learnings checklist | `~/.claude/LEARNINGS.md` | 51 |
