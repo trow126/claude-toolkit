@@ -38,15 +38,17 @@ Tools:
   - Glob: **/*.py (対象パス内)
 ```
 
-### Phase 1: Lint + Dead Code（逐次実行）
+### Phase 1: Lint + Dead Code（並列実行）
 
 Ruff + Vulture による自動検出を実行。
 
 ```yaml
-Tools:
-  - Bash: ruff check --output-format=json [target]
-  - Bash: ruff format --check [target]
-  - Bash: vulture [target] --min-confidence 80  # Dead Code検出
+Tools（並列実行 - ruff系とvulture系は独立）:
+  並列グループA:
+    - Bash: ruff check --output-format=json [target]
+    - Bash: ruff format --check [target]
+  並列グループB:
+    - Bash: vulture [target] --min-confidence 80  # Dead Code検出
 ```
 
 **Vulture検出対象**:
@@ -262,7 +264,7 @@ Tools:
 | Phase | Tools | 並列/逐次 |
 |-------|-------|----------|
 | 0 | Read, Glob | 逐次 |
-| 1 | Bash (ruff, vulture) | 逐次 |
+| 1 | Bash (ruff, vulture) | **並列** |
 | 2 | Grep ×16-21 | **並列** |
 | 3 | 内部処理 | 逐次 |
 | 4 | 出力生成 | 逐次 |
