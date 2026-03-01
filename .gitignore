@@ -11,6 +11,7 @@ CLAUDE.local.md
 # Session and temporary data
 cache/
 stats-cache.json
+mcp-needs-auth-cache.json
 file-history/
 history.jsonl
 debug/
