@@ -1,0 +1,223 @@
+#!/bin/bash
+#
+# slack-notify - 汎用Slack通知CLI
+#
+# Usage:
+#   slack-notify COMMAND [ARGS...]           コマンドを実行し結果を通知
+#   slack-notify --task NAME COMMAND...      タスク名を指定して実行・通知
+#   slack-notify -m MESSAGE                  メッセージのみ通知
+#   slack-notify -e CODE -m MESSAGE          終了コードとメッセージを明示指定
+#
+# Environment:
+#   SLACK_WEBHOOK_URL  Slack Incoming Webhook URL (required)
+#
+
+set -euo pipefail
+
+# .envファイルからSLACK_WEBHOOK_URLを読み込み（未設定時）
+if [[ -z "${SLACK_WEBHOOK_URL:-}" ]]; then
+    ENV_FILE="$HOME/.config/slack-notify.env"
+    if [[ -f "$ENV_FILE" ]]; then
+        SLACK_WEBHOOK_URL=$(grep -E "^SLACK_WEBHOOK_URL=" "$ENV_FILE" 2>/dev/null | cut -d= -f2- || true)
+        export SLACK_WEBHOOK_URL
+    fi
+fi
+
+# デフォルト値
+MESSAGE=""
+EXIT_CODE=""
+TASK_NAME=""
+SILENT=false
+COMMAND_ARGS=()
+
+# ヘルプ表示
+show_help() {
+    cat << 'EOF'
+slack-notify - 汎用Slack通知CLI
+
+Usage:
+  slack-notify [OPTIONS] COMMAND [ARGS...]
+  slack-notify -m MESSAGE
+  slack-notify -e CODE -m MESSAGE
+
+Options:
+  -m, --message MSG   メッセージのみ通知（成功扱い）
+  -e, --exit-code N   終了コードを明示指定
+  -t, --task NAME     表示名を上書き
+  -s, --silent        ローカル出力を抑制
+  -h, --help          このヘルプを表示
+
+Examples:
+  slack-notify ./train.sh                    # スクリプト実行→結果通知
+  slack-notify uv run python train.py        # コマンド実行→結果通知
+  slack-notify --task "学習" ./train.sh      # タスク名指定
+  slack-notify -m "デプロイ開始"             # メッセージのみ
+  long_script.sh; slack-notify -e $? -m "完了"  # 終了コード明示
+
+Environment:
+  SLACK_WEBHOOK_URL   Slack Incoming Webhook URL (required)
+EOF
+}
+
+# 引数解析
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        -h|--help)
+            show_help
+            exit 0
+            ;;
+        -m|--message)
+            MESSAGE="$2"
+            shift 2
+            ;;
+        -e|--exit-code)
+            EXIT_CODE="$2"
+            shift 2
+            ;;
+        -t|--task)
+            TASK_NAME="$2"
+            shift 2
+            ;;
+        -s|--silent)
+            SILENT=true
+            shift
+            ;;
+        --)
+            shift
+            COMMAND_ARGS+=("$@")
+            break
+            ;;
+        -*)
+            echo "Error: Unknown option: $1" >&2
+            echo "Run 'slack-notify --help' for usage." >&2
+            exit 1
+            ;;
+        *)
+            COMMAND_ARGS+=("$@")
+            break
+            ;;
+    esac
+done
+
+# Webhook URL チェック
+if [[ -z "${SLACK_WEBHOOK_URL:-}" ]]; then
+    echo "Error: SLACK_WEBHOOK_URL is not set" >&2
+    exit 1
+fi
+
+# 通知送信関数
+send_notification() {
+    local title="$1"
+    local color="$2"
+    local emoji="$3"
+    local fields="$4"
+
+    local hostname
+    hostname=$(hostname 2>/dev/null || echo "unknown")
+
+    local payload
+    payload=$(cat << EOF
+{
+    "attachments": [{
+        "color": "$color",
+        "title": "$emoji $title",
+        "fields": $fields,
+        "footer": "slack-notify",
+        "ts": $(date +%s)
+    }]
+}
+EOF
+)
+
+    local response
+    response=$(curl -s -w "\n%{http_code}" -X POST "$SLACK_WEBHOOK_URL" \
+        -H "Content-Type: application/json" \
+        -d "$payload" 2>/dev/null)
+
+    local http_code
+    http_code=$(echo "$response" | tail -n 1)
+
+    if [[ "$http_code" != "200" ]]; then
+        [[ "$SILENT" != true ]] && echo "Warning: Slack notification failed (HTTP $http_code)" >&2
+    else
+        [[ "$SILENT" != true ]] && echo "Slack notification sent" >&2
+    fi
+}
+
+# 実行時間フォーマット
+format_duration() {
+    local seconds=$1
+    if (( seconds < 60 )); then
+        echo "${seconds}s"
+    elif (( seconds < 3600 )); then
+        echo "$((seconds / 60))m $((seconds % 60))s"
+    else
+        echo "$((seconds / 3600))h $((seconds % 3600 / 60))m"
+    fi
+}
+
+# JSON文字列エスケープ
+json_escape() {
+    local str="$1"
+    str="${str//\\/\\\\}"
+    str="${str//\"/\\\"}"
+    str="${str//$'\n'/\\n}"
+    str="${str//$'\r'/\\r}"
+    str="${str//$'\t'/\\t}"
+    echo "$str"
+}
+
+# モード判定と実行
+if [[ ${#COMMAND_ARGS[@]} -gt 0 ]]; then
+    # ラッパーモード: コマンドを実行して結果を通知
+    COMMAND_STR="${COMMAND_ARGS[*]}"
+    DISPLAY_NAME="${TASK_NAME:-$COMMAND_STR}"
+
+    START_TIME=$(date +%s)
+
+    # コマンド実行（stdout/stderrはそのまま出力）
+    set +e
+    "${COMMAND_ARGS[@]}"
+    CMD_EXIT_CODE=$?
+    set -e
+
+    END_TIME=$(date +%s)
+    DURATION=$((END_TIME - START_TIME))
+    DURATION_STR=$(format_duration $DURATION)
+
+    DISPLAY_NAME_ESCAPED=$(json_escape "$DISPLAY_NAME")
+
+    if [[ $CMD_EXIT_CODE -eq 0 ]]; then
+        FIELDS="[{\"title\": \"コマンド\", \"value\": \"$DISPLAY_NAME_ESCAPED\", \"short\": true}, {\"title\": \"実行時間\", \"value\": \"$DURATION_STR\", \"short\": true}]"
+        send_notification "成功" "good" ":white_check_mark:" "$FIELDS"
+    else
+        FIELDS="[{\"title\": \"コマンド\", \"value\": \"$DISPLAY_NAME_ESCAPED\", \"short\": true}, {\"title\": \"終了コード\", \"value\": \"$CMD_EXIT_CODE\", \"short\": true}, {\"title\": \"実行時間\", \"value\": \"$DURATION_STR\", \"short\": true}]"
+        send_notification "失敗" "danger" ":x:" "$FIELDS"
+    fi
+
+    exit $CMD_EXIT_CODE
+
+elif [[ -n "$MESSAGE" ]]; then
+    # メッセージモード
+    MESSAGE_ESCAPED=$(json_escape "$MESSAGE")
+
+    if [[ -n "$EXIT_CODE" ]]; then
+        # 終了コード明示モード
+        if [[ "$EXIT_CODE" -eq 0 ]]; then
+            FIELDS="[{\"title\": \"メッセージ\", \"value\": \"$MESSAGE_ESCAPED\", \"short\": false}]"
+            send_notification "成功" "good" ":white_check_mark:" "$FIELDS"
+        else
+            FIELDS="[{\"title\": \"メッセージ\", \"value\": \"$MESSAGE_ESCAPED\", \"short\": true}, {\"title\": \"終了コード\", \"value\": \"$EXIT_CODE\", \"short\": true}]"
+            send_notification "失敗" "danger" ":x:" "$FIELDS"
+        fi
+    else
+        # メッセージのみ（情報通知）
+        FIELDS="[{\"title\": \"メッセージ\", \"value\": \"$MESSAGE_ESCAPED\", \"short\": false}]"
+        send_notification "通知" "#439FE0" ":mega:" "$FIELDS"
+    fi
+
+else
+    echo "Error: No command or message specified" >&2
+    echo "Run 'slack-notify --help' for usage." >&2
+    exit 1
+fi
