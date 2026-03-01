@@ -55,9 +55,9 @@ gh-issue-fetch.sh 42
 
 1. **進捗更新**: `gh-progress-sync.sh` で GitHub Issue に進捗コメント投稿
 2. **チェックボックス更新**: 完了タスクを `[x]` にマーク
-3. **全完了時**: AskUserQuestionでPR作成を確認
-   - 「実装が完了しました。PRを作成しますか？」
-   - 承認後、`.github/PULL_REQUEST_TEMPLATE.md`に従ってPR作成（`Closes #N` 含む）
+3. **全完了時**: 完了報告のみ行う（PR作成はしない）
+   - 「全タスクが完了しました。変更内容を確認してください。」
+   - PR作成はユーザーが明示的に依頼した場合のみ実行
 
 ```bash
 # 進捗同期
@@ -97,7 +97,7 @@ Claude:
    Task 3 開始...
    ... Task 3 完了
 5. [Sync] GitHub更新完了
-6. [Done] 全タスク完了。PR作成しますか？
+6. [Done] 全タスク完了。変更内容を確認してください。
 ```
 
 ---
