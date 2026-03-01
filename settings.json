@@ -4,6 +4,10 @@
     "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1",
     "CLAUDE_CODE_DISABLE_AUTO_MEMORY": "0"
   },
+  "attribution": {
+    "commit": "Co-Authored-By: Claude <noreply@anthropic.com>",
+    "pr": ""
+  },
   "permissions": {
     "allow": [
       "Read",
@@ -48,7 +52,6 @@
       "Bash(uv run python:*)"
     ]
   },
-  "model": "opus",
   "hooks": {
     "SessionEnd": [
       {
@@ -80,8 +83,5 @@
     "code-simplifier@claude-plugins-official": true
   },
   "language": "japanese",
-  "attribution": {
-    "commit": "Co-Authored-By: Claude <noreply@anthropic.com>",
-    "pr": ""
-  }
+  "model": "opus[1m]"
 }
