@@ -22,6 +22,7 @@
 - MVP first, iterate based on feedback
 - No enterprise bloat (auth, deployment, monitoring) unless requested
 - YAGNI: no speculative features
+- Significant changes: pause and evaluate if a simpler approach exists before implementing
 
 ## Code Organization
 - Follow language/framework naming conventions

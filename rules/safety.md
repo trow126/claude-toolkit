@@ -5,6 +5,7 @@
 - Never skip, disable, or comment out tests
 - Never bypass quality checks or validation
 - Debug systematically: Understand > Diagnose > Fix > Verify
+- Bug reports: present a concrete fix hypothesis before implementing. For financial/trading logic, always clarify root cause before modifying
 
 ## Framework Respect
 - Check package.json/deps before using libraries
