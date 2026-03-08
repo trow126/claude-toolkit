@@ -52,6 +52,7 @@
       "Bash(uv run python:*)"
     ]
   },
+  "model": "opus[1m]",
   "hooks": {
     "SessionEnd": [
       {
@@ -72,6 +73,40 @@
           }
         ]
       }
+    ],
+    "Notification": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/slack-notify-hook.sh notification",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/slack-notify-hook.sh stop",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/pr-review-hook.sh",
+            "timeout": 30
+          }
+        ]
+      }
     ]
   },
   "statusLine": {
@@ -83,5 +118,5 @@
     "code-simplifier@claude-plugins-official": true
   },
   "language": "japanese",
-  "model": "opus[1m]"
+  "effortLevel": "high"
 }

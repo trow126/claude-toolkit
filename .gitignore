@@ -35,6 +35,7 @@ telemetry/
 # SuperClaude standard files (not customized, root directory only)
 /*.md
 !README.md
+!CLAUDE.md
 
 # Exclude SuperClaude standard commands
 # commands/sc/
