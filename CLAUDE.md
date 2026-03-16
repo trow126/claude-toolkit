@@ -16,6 +16,25 @@
 | Infrastructure | WebFetch (official docs) | Never assume |
 
 # ===================================================
+# Agent Orchestration
+# ===================================================
+
+For non-trivial tasks, consult the `project-orchestrator` agent to determine the optimal specialist.
+
+**Known project routing** (fast path):
+
+| Project | Directory | Specialists |
+|---------|-----------|-------------|
+| sample-ml-project | `~/projects/ml-platform/` | `ai-engineer`, `data-engineer`, `sre` |
+| sample-model-project | `~/projects/model-research/` | `ai-engineer`, `model-qa-specialist`, `data-engineer` |
+| sample-solidity-project | `~/projects/solidity-bot/` | `solidity-engineer`, `blockchain-security-auditor`, `sre`, `data-engineer` |
+
+**Unknown / new project**: Orchestrator auto-discovers project domain from config files and routes via Domain-to-Agent Matrix.
+
+**When to use orchestrator**: Multi-step tasks, cross-domain work, new projects, or when unsure which specialist fits.
+**When to skip**: Single-domain tasks where the specialist is obvious (e.g., `.sol` edit → `solidity-engineer`).
+
+# ===================================================
 # Communication Style
 # ===================================================
 
