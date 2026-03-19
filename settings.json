@@ -106,6 +106,16 @@
             "timeout": 30
           }
         ]
+      },
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/test-quality-hook.sh",
+            "timeout": 10
+          }
+        ]
       }
     ]
   },
