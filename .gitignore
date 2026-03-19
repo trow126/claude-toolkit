@@ -45,3 +45,4 @@ plans/
 tasks/**/.lock
 tasks/**/*.json
 usage-data/facets/*.json
+sessions/*.json
