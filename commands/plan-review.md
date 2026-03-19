@@ -44,7 +44,7 @@ You are orchestrating a multi-perspective review of an implementation plan.
 
 ### Step 4: Spawn 3 Reviewers in Parallel
 
-Launch these subagents simultaneously using the Task tool:
+Launch these subagents simultaneously using the Agent tool:
 
 1. **plan-reviewer-feasibility**
    Prompt: "Review this implementation plan for feasibility. [plan content] [mode-specific context]"

@@ -1,8 +1,7 @@
 {
   "$schema": "https://json.schemastore.org/claude-code-settings.json",
   "env": {
-    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1",
-    "CLAUDE_CODE_DISABLE_AUTO_MEMORY": "0"
+    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"
   },
   "attribution": {
     "commit": "Co-Authored-By: Claude <noreply@anthropic.com>",
@@ -21,7 +20,7 @@
       "mcp__context7",
       "WebSearch",
       "WebFetch",
-      "Task",
+      "Agent",
       "SlashCommand(/gh:usage)"
     ],
     "deny": [
@@ -128,5 +127,7 @@
     "code-simplifier@claude-plugins-official": true
   },
   "language": "japanese",
-  "effortLevel": "high"
+  "effortLevel": "high",
+  "autoMemoryEnabled": true,
+  "autoUpdatesChannel": "stable"
 }

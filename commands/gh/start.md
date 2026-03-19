@@ -39,7 +39,7 @@ gh-issue-fetch.sh 42
 
 2. **逐次実行** (タスクごとに):
    - TodoWrite → `in_progress` に更新
-   - Task tool でサブエージェントに委譲して実装
+   - Agent tool でサブエージェントに委譲して実装
    - 完了後 → TodoWrite → `completed` に更新
 
 3. **エラー時**: エラー内容を表示して停止

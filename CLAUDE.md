@@ -77,7 +77,7 @@ PostToolUse hookが `gh pr create` を検出するとレビュー指示が返さ
 
 1. `gh pr view --json number -q '.number'` でPR番号取得
 2. `gh pr diff <PR番号>` で全差分取得
-3. **Task subagent** でレビュー実施（別コンテキストで客観性を確保）
+3. **Agent** でレビュー実施（別コンテキストで客観性を確保）
    - レビュー観点: バグ, セキュリティ, パフォーマンス, 可読性, テスト漏れ
    - プロジェクトの `claudedocs/learnings.md` があれば参照
    - 出力形式は以下のテンプレートに従うこと

@@ -26,5 +26,5 @@ Understand > Plan > TaskCreate (3+ tasks) > Execute > Track > Validate
 
 ## Tool Selection
 - Best tool for each task: MCP > Native > Basic
-- Use Task agents for complex multi-step operations (>3 steps)
+- Use Agent tool for complex multi-step operations (>3 steps)
 - Batch operations: MultiEdit over multiple Edits, batch Read calls
