@@ -1,7 +1,8 @@
 #!/bin/bash
 # gh-progress-sync.sh - GitHub Issue進捗同期
-# Usage: echo '{"issue": 42, "completed": [1,2], "total": 5, "task_name": "Impl"}' | gh-progress-sync.sh
+# Usage: gh-progress-sync.sh --json '{"issue": 42, "completed": [1,2], "total": 5, "task_name": "Impl"}'
 #        gh-progress-sync.sh --check-task 42 "Task 3"
+#        echo '{"issue": 42, ...}' | gh-progress-sync.sh  (legacy, stdin mode)
 #
 # GitHub Issueのチェックボックスを更新し、進捗コメントを投稿
 
@@ -11,7 +12,8 @@ show_help() {
     echo "gh-progress-sync.sh - GitHub Issue進捗同期"
     echo ""
     echo "Usage:"
-    echo "  echo '{JSON}' | gh-progress-sync.sh   # stdin から JSON を受け取る"
+    echo "  gh-progress-sync.sh --json '{JSON}'    # 引数からJSON受け取り（推奨）"
+    echo "  echo '{JSON}' | gh-progress-sync.sh    # stdin から JSON を受け取る（legacy）"
     echo "  gh-progress-sync.sh --check-task <issue> <task-text>  # タスクをチェック"
     echo ""
     echo "JSON format:"
@@ -63,7 +65,18 @@ if [[ "$1" == "--check-task" ]]; then
     exit 0
 fi
 
-# JSON モード: stdin から進捗データを受け取る
+# --json モード: 引数からJSON受け取り（パイプ不要）
+if [[ "$1" == "--json" ]]; then
+    INPUT="$2"
+    if [[ -z "$INPUT" ]]; then
+        echo "Error: --json requires a JSON string argument" >&2
+        show_help >&2
+        exit 1
+    fi
+    # 以下のstdinモードと同じ処理へフォールスルー
+else
+
+# JSON モード (legacy): stdin から進捗データを受け取る
 if [[ -t 0 ]]; then
     echo "Error: No JSON input. Use stdin or --check-task mode." >&2
     show_help >&2
@@ -71,6 +84,8 @@ if [[ -t 0 ]]; then
 fi
 
 read -r INPUT
+
+fi  # --json / stdin 分岐終了
 
 # JSONパース
 ISSUE_NUMBER=$(echo "$INPUT" | jq -r '.issue // empty')

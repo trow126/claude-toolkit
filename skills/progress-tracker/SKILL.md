@@ -36,7 +36,7 @@ percentage = (completed / total) * 100
 ### Step 2: Update GitHub
 ```bash
 # Use gh-progress-sync.sh
-echo '{"issue": 42, "completed": [1,2,3], "total": 5, "task_name": "Task name"}' | gh-progress-sync.sh
+gh-progress-sync.sh --json '{"issue": 42, "completed": [1,2,3], "total": 5, "task_name": "Task name"}'
 
 # Or check specific task
 gh-progress-sync.sh --check-task 42 "Task description"
@@ -58,7 +58,7 @@ User: "Sync progress for Issue #42"
 Claude:
   1. Reads current TodoWrite state
   2. Calculates: 3/5 tasks (60%)
-  3. Runs: echo '{"issue": 42, ...}' | gh-progress-sync.sh
+  3. Runs: gh-progress-sync.sh --json '{"issue": 42, ...}'
   4. Reports: "Synced Issue #42: 3/5 tasks complete (60%)"
 ```
 
@@ -77,7 +77,7 @@ Output: "All tasks complete! Issue #42 closed."
 
 ## Scripts
 
-- `~/.local/bin/gh-progress-sync.sh` - GitHub sync utility
+- `~/.claude/bin/gh-progress-sync.sh` - GitHub sync utility
 
 ## Dependencies
 

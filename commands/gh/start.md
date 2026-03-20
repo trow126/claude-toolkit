@@ -1,11 +1,23 @@
 ---
 name: gh:start
-description: GitHub Issue駆動開発（簡略版v3）。Issue取得→逐次実行→進捗同期の3フェーズで確実に実行。
+description: "GitHub Issue駆動開発（v4）。Issue取得→実装→コミット→同期の4フェーズで確実に実行。"
+argument-hint: "<issue-number>"
+allowed-tools:
+  - Bash
+  - Read
+  - Glob
+  - Grep
+  - Edit
+  - Write
+  - Task
+  - TaskCreate
+  - TaskUpdate
+  - TaskList
 ---
 
 # /gh:start - GitHub Issue駆動開発
 
-> **原則**: GitHub Issue = SSOT、TodoWrite = 進捗追跡、逐次実行 = 確実性
+> **原則**: GitHub Issue = SSOT、TaskCreate = 進捗追跡、逐次実行 = 確実性
 
 ## Usage
 
@@ -18,9 +30,15 @@ description: GitHub Issue駆動開発（簡略版v3）。Issue取得→逐次実
 
 ## Phase 1: Fetch (Issue取得)
 
-1. **Issue取得**: `gh-issue-fetch.sh ${ISSUE_NUMBER}` を実行
-2. **出力確認**: JSON形式で tasks, statistics を取得
-3. **エラー時**: Issue番号確認を促す
+1. **checkpoint確認**: `read_memory("issue_{N}_checkpoint")` を試行
+   - checkpoint存在 → レジュームを提案（残タスクのみ実行）
+   - checkpoint不在 → 新規実行
+
+2. **Issue取得**: `gh-issue-fetch.sh ${ISSUE_NUMBER}` を実行
+
+3. **出力確認**: JSON形式で tasks, statistics を取得
+
+4. **エラー時**: Issue番号確認を促す
 
 ```bash
 # 実行コマンド
@@ -29,31 +47,75 @@ gh-issue-fetch.sh 42
 
 **成功条件**: exit 0 + 有効なJSON + state == "open"
 
+5. **checkpoint初期化**: `write_memory("issue_{N}_checkpoint", ...)` でタスク一覧・状態を保存
+
 ---
 
 ## Phase 2: Execute (実装)
 
-1. **TodoWrite構築**:
+1. **TaskCreate構築**:
    - pending タスクのみ抽出
-   - 各タスクに content, status, activeForm を設定
+   - 各タスクに subject, description, activeForm を設定
 
 2. **逐次実行** (タスクごとに):
-   - TodoWrite → `in_progress` に更新
-   - Agent tool でサブエージェントに委譲して実装
-   - 完了後 → TodoWrite → `completed` に更新
+   - TaskUpdate → `in_progress` に更新
+   - Task tool でサブエージェントに委譲して実装（下記テンプレート参照）
+   - 完了後 → TaskUpdate → `completed` に更新
+   - checkpoint更新: `write_memory("issue_{N}_checkpoint", ...)` で完了タスクを記録
 
-3. **エラー時**: エラー内容を表示して停止
+3. **エラー時**: エラー内容を表示して停止（checkpointは保存済みなので次回レジューム可能）
 
-**実行ルール**:
-- 1タスクずつ確実に完了させる（並列実行なし）
-- 各タスク完了時にTodoWrite状態を即座に更新
-- 失敗したらユーザーに報告して指示を待つ
+**逐次実行の理由**:
+Issueタスクは暗黙的な順序依存を持つことが多い（タスク2がタスク1のコードに依存する等）。
+確実性を優先し、1タスクずつ完了させる。
+
+**Agent委譲テンプレート**:
+```
+Task(
+  subagent_type: "general-purpose",
+  prompt: "以下のタスクを実装してください。
+    タスク: {task_text}
+    Issue: #{N} - {issue_title}
+    プロジェクトルート: {cwd}
+    
+    完了条件:
+    - コードが動作すること
+    - 既存テストが壊れないこと
+    - LEARNINGS.md のルールに準拠すること"
+)
+```
+エージェントがエラーを返した場合、ユーザーに報告して指示を待つ。
 
 ---
 
-## Phase 3: Sync (GitHub同期)
+## Phase 3: Commit (コミット)
 
-1. **進捗更新**: `gh-progress-sync.sh` で GitHub Issue に進捗コメント投稿
+全タスク完了後、変更をコミットする。
+
+1. **差分確認**: `git status` と `git diff` で変更内容を確認
+2. **lint/format**: プロジェクトのlint/formatツールを実行（存在する場合）
+3. **ステージング**: 変更ファイルを `git add` でステージング
+4. **コミット**: Conventional Commits形式でコミット
+   - コミットメッセージにIssue番号を含める
+   - 例: `feat: implement user authentication (#42)`
+
+```bash
+# コミットメッセージ例
+git commit -m "$(cat <<'EOF'
+feat: {変更の要約} (#{ISSUE_NUMBER})
+
+{タスク完了の詳細}
+
+Co-Authored-By: Claude <noreply@anthropic.com>
+EOF
+)"
+```
+
+---
+
+## Phase 4: Sync (GitHub同期)
+
+1. **進捗更新**: `gh-progress-sync.sh --json '{...}'` で GitHub Issue に進捗コメント投稿
 2. **チェックボックス更新**: 完了タスクを `[x]` にマーク
 3. **全完了時**: 完了報告のみ行う（PR作成はしない）
    - 「全タスクが完了しました。変更内容を確認してください。」
@@ -61,7 +123,7 @@ gh-issue-fetch.sh 42
 
 ```bash
 # 進捗同期
-echo '{"issue": 42, "completed": [1,2], "total": 5, "task_name": "Task name"}' | gh-progress-sync.sh
+gh-progress-sync.sh --json '{"issue": 42, "completed": [1,2], "total": 5, "task_name": "Task name"}'
 
 # タスク個別チェック
 gh-progress-sync.sh --check-task 42 "Implement login button"
@@ -75,7 +137,8 @@ gh-progress-sync.sh --check-task 42 "Implement login button"
 |----------|--------|------|
 | Fetch | Issue not found | Issue番号を確認してください |
 | Fetch | Issue closed | 既にクローズ済みです |
-| Execute | 実装失敗 | エラー内容を確認し、手動で対応してください |
+| Execute | 実装失敗 | checkpointを保存して停止。次回 `/gh:start` でレジューム可能 |
+| Commit | lint失敗 | 修正してから再コミット |
 | Sync | コメント失敗 | `gh issue comment` で手動投稿してください |
 
 ---
@@ -87,17 +150,30 @@ gh-progress-sync.sh --check-task 42 "Implement login button"
 User: /gh:start 42
 
 Claude:
-1. [Fetch] gh-issue-fetch.sh 42 実行
-2. [Parse] 5タスク検出 (3 pending)
-3. [TodoWrite] 3タスクを登録
-4. [Execute] Task 1 開始...
-   ... Task 1 完了
+1. [Checkpoint] 既存checkpoint確認 → なし（新規実行）
+2. [Fetch] gh-issue-fetch.sh 42 実行
+3. [Parse] 5タスク検出 (3 pending)
+4. [Checkpoint] issue_42_checkpoint 保存
+5. [TaskCreate] 3タスクを登録
+6. [Execute] Task 1 開始...
+   ... Task 1 完了 → checkpoint更新
    Task 2 開始...
-   ... Task 2 完了
+   ... Task 2 完了 → checkpoint更新
    Task 3 開始...
-   ... Task 3 完了
-5. [Sync] GitHub更新完了
-6. [Done] 全タスク完了。変更内容を確認してください。
+   ... Task 3 完了 → checkpoint更新
+7. [Commit] git add + git commit
+8. [Sync] GitHub更新完了
+9. [Done] 全タスクが完了しました。変更内容を確認してください。
+```
+
+### レジューム
+```
+User: /gh:start 42
+
+Claude:
+1. [Checkpoint] issue_42_checkpoint 検出
+   → 5タスク中2タスク完了済み。残り3タスクを継続しますか？
+2. [Execute] Task 3 から再開...
 ```
 
 ---
@@ -112,11 +188,12 @@ Claude:
 ## Technical Details
 
 **Scripts**:
-- `~/.local/bin/gh-issue-fetch.sh` - Issue取得・パース
-- `~/.local/bin/gh-progress-sync.sh` - GitHub同期
+- `~/.claude/bin/gh-issue-fetch.sh` - Issue取得・パース
+- `~/.claude/bin/gh-progress-sync.sh` - GitHub同期
 - `~/.claude/skills/issue-parser/scripts/parse_issue.py` - Markdownパース
 
 **依存**:
 - `gh` CLI (GitHub CLI)
 - `jq` (JSONパース)
 - `python3` (パーサースクリプト)
+- Serena MCP (checkpoint用 write_memory / read_memory / delete_memory)

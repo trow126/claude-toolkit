@@ -1,6 +1,7 @@
 ---
 name: gh:review
 description: 全レビューソース（CodeRabbit・セルフレビュー・Codex等）の指摘をIssue・計画との整合性を確認しながら統合処理。採用/却下を判断し、修正・テスト・再プッシュまで一貫実行。
+argument-hint: "[pr-number]"
 ---
 
 # /gh:review - 統合レビュー対応コマンド

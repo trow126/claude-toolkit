@@ -1,3 +1,8 @@
+---
+name: plan-review
+description: "Multi-Perspective Plan Review"
+---
+
 # Multi-Perspective Plan Review
 
 Review an implementation plan from 3 independent perspectives using specialized subagents.
