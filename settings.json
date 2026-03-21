@@ -42,13 +42,13 @@
       "Bash(dd if=*of=/dev/sd*)",
       "Bash(uv run python scripts/scraping/*)",
       "Bash(uv run python scripts/voting/*)",
-      "Bash(bash:*)"
+      "Bash(bash *)"
     ],
     "ask": [
-      "Bash(rm:*)",
-      "Bash(chmod:*)",
-      "Bash(chown:*)",
-      "Bash(uv run python:*)"
+      "Bash(rm *)",
+      "Bash(chmod *)",
+      "Bash(chown *)",
+      "Bash(uv run python *)"
     ]
   },
   "model": "opus[1m]",
