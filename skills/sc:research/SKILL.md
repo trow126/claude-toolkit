@@ -1,5 +1,5 @@
 ---
-name: research
+name: sc:research
 description: 深い Web リサーチを自動計画とインテリジェントな検索で行う
 ---
 

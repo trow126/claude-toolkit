@@ -1,5 +1,5 @@
 ---
-name: coderabbit
+name: gh:coderabbit
 description: "Python向け統合コードレビュー。Quality/Security/Performance/Architecture/Anti-Fallback + CodeRabbitパターンを全検出"
 ---
 
