@@ -6,17 +6,17 @@
 #   2. テストファイル変更時は品質チェック実行を通知
 #
 # 全プロジェクト共通。ターミナル表示で人間にも見える。
+# Data is passed via stdin as JSON, not environment variables.
 
-TOOL_INPUT_JSON="${TOOL_INPUT:-}"
+INPUT=$(cat)
 
 # Python ファイルか判定
-if ! echo "$TOOL_INPUT_JSON" | grep -qE '"file_path".*\.py"'; then
+FILE_PATH=$(echo "$INPUT" | jq -r '.tool_input.file_path // empty')
+if [ -z "$FILE_PATH" ]; then
     exit 0
 fi
 
-# ファイルパスを抽出
-FILE_PATH=$(echo "$TOOL_INPUT_JSON" | grep -oP '"file_path"\s*:\s*"\K[^"]+' 2>/dev/null)
-if [ -z "$FILE_PATH" ]; then
+if [[ "$FILE_PATH" != *.py ]]; then
     exit 0
 fi
 

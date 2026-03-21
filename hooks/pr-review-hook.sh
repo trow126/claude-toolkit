@@ -1,13 +1,16 @@
 #!/bin/bash
 # PostToolUse hook: detect gh pr create and trigger auto-review
+# Data is passed via stdin as JSON, not environment variables
 
-TOOL_INPUT_JSON="${TOOL_INPUT:-}"
+INPUT=$(cat)
+
+COMMAND=$(echo "$INPUT" | jq -r '.tool_input.command // empty')
+STDOUT=$(echo "$INPUT" | jq -r '.tool_response.stdout // empty')
 
 # Check if the Bash command contained gh pr create
-if echo "$TOOL_INPUT_JSON" | grep -q "gh pr create"; then
+if echo "$COMMAND" | grep -q "gh pr create"; then
   # Check tool output for success (PR URL present)
-  TOOL_OUTPUT_JSON="${TOOL_OUTPUT:-}"
-  if echo "$TOOL_OUTPUT_JSON" | grep -qE "https://github\.com/.+/pull/[0-9]+"; then
+  if echo "$STDOUT" | grep -qE "https://github\.com/.+/pull/[0-9]+"; then
     echo "PR作成を検出。PRレビュー手順を実行してください："
     echo "1. gh pr view --json number -q '.number' でPR番号を取得"
     echo "2. gh pr diff <PR番号> で差分を取得"
