@@ -46,3 +46,4 @@ tasks/**/.lock
 tasks/**/*.json
 usage-data/facets/*.json
 sessions/*.json
+claudedocs/reviews/*.md
