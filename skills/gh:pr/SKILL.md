@@ -37,7 +37,7 @@ allowed-tools:
 
 2. **ブランチ確認**: `git branch --show-current` を実行
    - 空（HEAD detached）→ エラー停止: 「ブランチが検出できません。feature ブランチで作業してください」
-   - `main` または `master` → エラー停止: 「main/master ブランチでは PR を作成できません。feature ブランチで作業してください」
+   - `main` または `master` → 変更内容からブランチ名を生成し `git checkout -b <branch>` で feature ブランチを作成。未コミット変更があればコミットしてから続行
 
 3. **既存 PR チェック**: `gh pr list --head <current-branch> --json number,url` を実行
    - PR が存在 → PR URL を表示して終了: 「既存の PR があります: <URL>」
@@ -132,7 +132,8 @@ EOF
 | 状態 | 対応 |
 |------|------|
 | 未コミットの変更あり | 変更内容を確認し、Conventional Commits 形式でコミットしてから続行 |
-| HEAD detached / main/master | 「feature ブランチで作業してください」で停止 |
+| HEAD detached | 「feature ブランチで作業してください」で停止 |
+| main/master ブランチ | 変更内容からブランチ名を生成し feature ブランチを作成、コミットして続行 |
 | 既存 PR あり | PR URL を表示して終了 |
 | ベースブランチが存在しない | 「ベースブランチ '<name>' が見つかりません」で停止 |
 | コミットなし | 「ベースブランチとの差分がありません」で停止 |
