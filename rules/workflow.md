@@ -1,30 +1,30 @@
-# Workflow Rules
+# ワークフロールール
 
-## Task Pattern
-Understand > Plan > TaskCreate (3+ tasks) > Execute > Track > Validate
+## タスクパターン
+理解 > 計画 > TaskCreate (3+ タスク) > 実行 > 追跡 > 検証
 
-## Planning
-- Identify parallelizable operations during planning
-- Map dependencies: separate sequential from parallel tasks
-- Plan optimal MCP server combinations and batch operations
-- Architectural tasks: use Claude Code Plan mode before executing
+## 計画
+- 計画段階で並列化可能な操作を特定する
+- 依存関係をマッピングする: 逐次タスクと並列タスクを分離
+- 最適な MCP サーバーの組み合わせとバッチ操作を計画する
+- アーキテクチャタスク: 実行前に Claude Code Plan モードを使用する
 
-## Execution
-- ALWAYS parallel tool calls by default, sequential ONLY for dependencies
-- Validate before execution, verify after completion
-- Run lint/typecheck before marking tasks complete
-- Proof of operation before marking complete: show actual execution output or file final state
+## 実行
+- デフォルトで常にパラレルツールコール、依存関係がある場合のみ逐次実行
+- 実行前にバリデーション、完了後に検証
+- タスク完了前に lint/typecheck を実行する
+- 完了とマークする前に操作の証拠を示す: 実際の実行出力またはファイルの最終状態
 
-## Self-Improvement
-- When the user corrects your work: append to the project's `claudedocs/learnings.md` under a `## Corrections` section
-- Review project learnings at session start
+## 自己改善
+- ユーザーに修正された場合: プロジェクトの `claudedocs/learnings.md` の `## Corrections` セクションに追記する
+- セッション開始時にプロジェクトの learnings を確認する
 
 ## Serena Memory
-- Auto-execute memory operations without confirmation
-- Session pattern: list_memories > Work > write_memory (checkpoint) > write_memory (save)
-- Checkpoint on: task completion, 30-min intervals, risky operations
+- 確認なしで memory 操作を自動実行する
+- セッションパターン: list_memories > 作業 > write_memory (チェックポイント) > write_memory (保存)
+- チェックポイントのタイミング: タスク完了時、30分間隔、リスクのある操作時
 
-## Tool Selection
-- Best tool for each task: MCP > Native > Basic
-- Use Agent tool for complex multi-step operations (>3 steps)
-- Batch operations: MultiEdit over multiple Edits, batch Read calls
+## ツール選択
+- 各タスクに最適なツール: MCP > Native > Basic
+- 複雑な複数ステップの操作 (>3 ステップ) には Agent ツールを使用する
+- バッチ操作: 複数の Edit より MultiEdit、Read はバッチで呼び出す

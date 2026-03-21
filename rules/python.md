@@ -3,14 +3,14 @@ paths:
   - "**/*.py"
 ---
 
-# Python Rules
+# Python ルール
 
-## uv Projects
-- Always use `uv run python` or `uv run script.py` in projects with pyproject.toml
-- Never use `python` or `python3` directly
-- Applies to all: ad-hoc scripts, debugging, testing, temporary executions
+## uv プロジェクト
+- pyproject.toml があるプロジェクトでは常に `uv run python` または `uv run script.py` を使用する
+- `python` や `python3` を直接使用しない
+- すべてに適用: アドホックスクリプト、デバッグ、テスト、一時的な実行
 
-## Quick Commands
+## クイックコマンド
 ```bash
 uv run ruff check src/ --fix
 uv run ruff format src/

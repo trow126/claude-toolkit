@@ -1,37 +1,37 @@
-# Code Quality Rules
+# コード品質ルール
 
-## Implementation Completeness
-- No partial features: start it = finish it
-- No TODO comments for core functionality
-- No mock objects, placeholders, or stub implementations
-- All generated code must be production-ready
+## 実装の完全性
+- 不完全な機能は禁止: 着手したら最後まで完成させる
+- コア機能に TODO コメントを残さない
+- モックオブジェクト、プレースホルダー、スタブ実装は禁止
+- 生成するコードはすべて本番レベルであること
 
-## No Fallback Policy
-- No silent error swallowing: `except Exception: pass` or `except: return None` is prohibited
-- No catch-all with default return: exceptions must be handled explicitly or propagated
-- No `getattr(obj, attr, silent_default)` for hiding missing attributes — fail loudly
-- No `dict.get(key, fallback)` for required config values — use `dict[key]` and let it raise
-- Allowed exceptions: optional/cosmetic features, graceful degradation with explicit logging
+## No Fallback ポリシー
+- サイレントなエラー握りつぶし禁止: `except Exception: pass` や `except: return None` は禁止
+- catch-all でデフォルト値を返すのは禁止: 例外は明示的に処理するか伝播させる
+- `getattr(obj, attr, silent_default)` で属性の欠落を隠すのは禁止 — 大声で失敗させる
+- 必須の設定値に `dict.get(key, fallback)` を使うのは禁止 — `dict[key]` を使い、例外を発生させる
+- 許容される例外: オプション/装飾的な機能、明示的なログ出力を伴うグレースフルデグラデーション
 
-## Test Implementation
-- Every feature/fix includes corresponding tests
-- New code must not reduce test coverage
+## テスト実装
+- すべての機能追加/修正に対応するテストを含める
+- 新しいコードによりテストカバレッジを下げてはならない
 
-## Scope Discipline
-- Build ONLY what's asked, no feature expansion
-- MVP first, iterate based on feedback
-- No enterprise bloat (auth, deployment, monitoring) unless requested
-- YAGNI: no speculative features
-- Significant changes: pause and evaluate if a simpler approach exists before implementing
+## スコープ規律
+- 依頼されたものだけを作る。機能の拡張は禁止
+- まず MVP、フィードバックに基づいて反復
+- 要求されない限りエンタープライズ肥大化（認証、デプロイ、監視）は禁止
+- YAGNI: 投機的な機能は作らない
+- 大きな変更: 実装前に、よりシンプルなアプローチが存在しないか立ち止まって評価する
 
-## Code Organization
-- Follow language/framework naming conventions
-- Match existing project organization patterns
-- Never mix naming conventions within same project
+## コード構成
+- 言語/フレームワークの命名規則に従う
+- 既存のプロジェクト構成パターンに合わせる
+- 同一プロジェクト内で命名規則を混在させない
 
-## Pre-Implementation Quality Gate
-- Check LEARNINGS.md before implementation
-- CodeRabbit prevention: apply Ruff rules (G004, TRY401, RUF059, RUF022)
-- Type safety: zero-division, empty arrays, None handling, index bounds
-- Logging: `%s` formatting, `logger.exception()` without `{e}`
-- Markdown: blank lines around headings/tables/code blocks
+## 実装前品質ゲート
+- 実装前に LEARNINGS.md を確認する
+- CodeRabbit 防止: Ruff ルール (G004, TRY401, RUF059, RUF022) を適用する
+- 型安全性: ゼロ除算、空配列、None ハンドリング、インデックス境界
+- ログ出力: `%s` フォーマット、`logger.exception()` に `{e}` を含めない
+- Markdown: 見出し/テーブル/コードブロックの前後に空行

@@ -3,39 +3,39 @@ name: gh:index
 description: プロジェクト構造を最大限調査し、Issue作成の元ネタとなるナレッジインデックスを生成
 ---
 
-# /gh:index - Project Knowledge Index Generator
+# /gh:index - プロジェクトナレッジインデックス生成
 
-> **Concept**: Investigation only. Output serves as source material for Issue creation. No project modifications.
+> **コンセプト**: 調査のみ。出力はIssue作成のソース資料。プロジェクトの変更は行わない。
 
 ## Usage
 
 ```bash
-/gh:index [target]    # Analyze target directory (default: current directory)
-/gh:index             # Analyze current directory
+/gh:index [target]    # 対象ディレクトリを分析（デフォルト: カレントディレクトリ）
+/gh:index             # カレントディレクトリを分析
 ```
 
 ---
 
-## Output
+## 出力
 
-Single file: `claudedocs/project_index.md`
+単一ファイル: `claudedocs/project_index.md`
 
 ---
 
-## Workflow (4 Phases - Maximum Investigation)
+## ワークフロー（4フェーズ - 最大限の調査）
 
-### Phase 1: Discovery (探索)
+### Phase 1: Discovery（探索）
 
-1. **Full Project Scan**: `list_dir(recursive=true)` via Serena
-2. **Technology Detection**:
-   - Languages: `.py`, `.ts`, `.js`, `.go`, `.rs`, etc.
-   - Frameworks: package.json, pyproject.toml, Cargo.toml
-   - Build tools: Makefile, webpack.config, vite.config
-3. **Documentation Inventory**: README, docs/, CHANGELOG, API docs
-4. **Entry Points**: main.*, index.*, src/*, app/*
+1. **プロジェクト全体スキャン**: Serena 経由で `list_dir(recursive=true)`
+2. **技術スタック検出**:
+   - 言語: `.py`, `.ts`, `.js`, `.go`, `.rs` 等
+   - フレームワーク: package.json, pyproject.toml, Cargo.toml
+   - ビルドツール: Makefile, webpack.config, vite.config
+3. **ドキュメント棚卸**: README, docs/, CHANGELOG, API docs
+4. **エントリポイント**: main.*, index.*, src/*, app/*
 
 ```
-Serena tools:
+Serena ツール:
 - list_dir(".", recursive=true)
 - find_file("*.md", ".")
 - find_file("pyproject.toml|package.json|Cargo.toml", ".")
@@ -43,193 +43,193 @@ Serena tools:
 
 ---
 
-### Phase 2: Deep Analysis (詳細分析)
+### Phase 2: Deep Analysis（詳細分析）
 
-1. **Symbol Extraction**: `get_symbols_overview()` for all code files
-2. **Dependency Mapping**:
-   - External: requirements.txt, package.json dependencies
-   - Internal: import/require patterns
-3. **Architecture Patterns**:
+1. **シンボル抽出**: 全コードファイルに対して `get_symbols_overview()`
+2. **依存関係マッピング**:
+   - 外部: requirements.txt, package.json の依存関係
+   - 内部: import/require パターン
+3. **アーキテクチャパターン**:
    - MVC, Clean Architecture, Domain-Driven
    - Monolith, Microservices, Monorepo
-4. **Quality Metrics**:
-   - Type hint coverage (Python: mypy, TS: strict mode)
-   - Test coverage (tests/ directory analysis)
-   - Docstring/JSDoc coverage
-5. **Concerns Detection**:
-   - Security: hardcoded secrets, SQL injection patterns
-   - Performance: N+1 queries, unbounded loops
-   - Technical debt: TODO/FIXME/HACK comments
+4. **品質メトリクス**:
+   - 型ヒントカバレッジ（Python: mypy, TS: strict mode）
+   - テストカバレッジ（tests/ ディレクトリ分析）
+   - Docstring/JSDoc カバレッジ
+5. **懸念事項検出**:
+   - セキュリティ: ハードコードされた秘密情報、SQLインジェクションパターン
+   - パフォーマンス: N+1クエリ、無制限ループ
+   - 技術的負債: TODO/FIXME/HACK コメント
 
 ```
-Serena tools:
-- get_symbols_overview(relative_path) for each code file
+Serena ツール:
+- get_symbols_overview(relative_path) 各コードファイルに対して
 - search_for_pattern("TODO|FIXME|HACK", restrict_search_to_code_files=true)
 - search_for_pattern("password|secret|api_key", restrict_search_to_code_files=true)
 ```
 
 ---
 
-### Phase 3: Indexing (インデックス化)
+### Phase 3: Indexing（インデックス化）
 
-1. **Structure Compilation**: Aggregate all findings into Markdown
-2. **Cross-Reference Generation**: Link symbols to their locations
-3. **Output Generation**: Write to `claudedocs/project_index.md`
-
----
-
-### Phase 4: Issue Candidates (Issue候補)
-
-1. **Undocumented Areas**: Files/symbols without docs
-2. **Improvement Recommendations**: Quality gaps, missing tests
-3. **Technical Debt**: TODO items, deprecated patterns
-4. **Priority Classification**: High/Medium/Low based on impact
+1. **構造のコンパイル**: 全調査結果をMarkdownに集約
+2. **クロスリファレンス生成**: シンボルとその場所をリンク
+3. **出力生成**: `claudedocs/project_index.md` に書き込み
 
 ---
 
-## Output Format: project_index.md
+### Phase 4: Issue Candidates（Issue候補）
+
+1. **未ドキュメント領域**: ドキュメントのないファイル/シンボル
+2. **改善推奨**: 品質ギャップ、テスト不足
+3. **技術的負債**: TODO項目、非推奨パターン
+4. **優先度分類**: 影響度に基づいてHigh/Medium/Low
+
+---
+
+## 出力フォーマット: project_index.md
 
 ```markdown
 # Project Index: {project_name}
 
 Generated: {timestamp}
 
-## Overview
+## 概要
 
 - Language: Python 3.11
 - Framework: FastAPI
 - Build: uv + pyproject.toml
 - Test: pytest
 
-## Directory Structure
+## ディレクトリ構造
 
 ├── src/
-│   ├── api/       # REST endpoints (12 files)
-│   ├── core/      # Business logic (8 files)
-│   └── models/    # Data models (5 files)
-├── tests/         # Test suite (23 files)
-└── docs/          # Documentation (2 files)
+│   ├── api/       # REST エンドポイント (12 files)
+│   ├── core/      # ビジネスロジック (8 files)
+│   └── models/    # データモデル (5 files)
+├── tests/         # テストスイート (23 files)
+└── docs/          # ドキュメント (2 files)
 
-## Key Entry Points
+## 主要エントリポイント
 
-| File | Purpose |
-|------|---------|
-| src/main.py | Application entry |
-| src/api/routes.py | Route definitions |
-| src/core/config.py | Configuration |
+| ファイル | 目的 |
+|---------|------|
+| src/main.py | アプリケーションエントリ |
+| src/api/routes.py | ルート定義 |
+| src/core/config.py | 設定 |
 
-## Core Symbols
+## コアシンボル
 
-| Symbol | Location | Type | Description |
-|--------|----------|------|-------------|
-| App | src/main.py:15 | Class | Main application |
-| UserService | src/core/users.py:28 | Class | User business logic |
-| get_user | src/api/users.py:42 | Function | User retrieval endpoint |
+| シンボル | 場所 | 種別 | 説明 |
+|---------|------|------|------|
+| App | src/main.py:15 | Class | メインアプリケーション |
+| UserService | src/core/users.py:28 | Class | ユーザービジネスロジック |
+| get_user | src/api/users.py:42 | Function | ユーザー取得エンドポイント |
 
-## Dependencies
+## 依存関係
 
-### External
+### 外部
 
 - fastapi: ^0.100.0
 - pydantic: ^2.0.0
 - sqlalchemy: ^2.0.0
 
-### Internal Module Dependencies
+### 内部モジュール依存関係
 
 - src/api → src/core → src/models
 
-## Quality Metrics
+## 品質メトリクス
 
-| Metric | Value | Status |
-|--------|-------|--------|
-| Type hint coverage | 78% | ⚠️ |
-| Test coverage | 65% | ⚠️ |
-| Docstring coverage | 45% | ❌ |
+| メトリクス | 値 | ステータス |
+|-----------|-----|-----------|
+| 型ヒントカバレッジ | 78% | ⚠️ |
+| テストカバレッジ | 65% | ⚠️ |
+| Docstringカバレッジ | 45% | ❌ |
 
-## Documentation Status
+## ドキュメント状況
 
-| Document | Status | Notes |
-|----------|--------|-------|
-| README.md | ✅ | Exists, up to date |
-| API docs | ❌ | Missing |
-| Architecture | ❌ | Missing |
+| ドキュメント | ステータス | 備考 |
+|-------------|-----------|------|
+| README.md | ✅ | 存在、最新 |
+| API docs | ❌ | 未作成 |
+| Architecture | ❌ | 未作成 |
 
-## Technical Debt
+## 技術的負債
 
-| Type | Count | Locations |
-|------|-------|-----------|
+| 種別 | 件数 | 場所 |
+|------|------|------|
 | TODO | 12 | src/core/users.py:45, src/api/auth.py:23, ... |
 | FIXME | 3 | src/models/order.py:78, ... |
 | HACK | 1 | src/utils/cache.py:15 |
 
-## Security Concerns
+## セキュリティ懸念
 
-| Issue | Severity | Location |
-|-------|----------|----------|
-| Hardcoded API key | 🚨 High | src/config.py:12 |
-| SQL string concat | ⚠️ Medium | src/db/queries.py:34 |
+| 問題 | 重要度 | 場所 |
+|------|--------|------|
+| ハードコードされたAPIキー | 🚨 High | src/config.py:12 |
+| SQL文字列連結 | ⚠️ Medium | src/db/queries.py:34 |
 
-## Issue Candidates
+## Issue候補
 
 > Issue作成の元ネタ。優先度順。
 
-### High Priority
+### 高優先度
 
-1. **API Documentation Missing**
-   - Target: src/api/ (all files)
-   - Impact: Developer onboarding delayed
-   - Suggested Issue: "docs: Add OpenAPI documentation for REST endpoints"
+1. **APIドキュメント未作成**
+   - 対象: src/api/ (全ファイル)
+   - 影響: 開発者オンボーディングの遅延
+   - Issue案: "docs: RESTエンドポイントのOpenAPIドキュメントを追加"
 
-2. **Security: Hardcoded Credentials**
-   - Target: src/config.py:12
-   - Impact: Security vulnerability if committed
-   - Suggested Issue: "security: Move credentials to environment variables"
+2. **セキュリティ: ハードコードされた認証情報**
+   - 対象: src/config.py:12
+   - 影響: コミット時のセキュリティ脆弱性
+   - Issue案: "security: 認証情報を環境変数に移行"
 
-### Medium Priority
+### 中優先度
 
-3. **Low Type Hint Coverage in core/**
-   - Target: src/core/*.py (8 files)
-   - Impact: IDE completion disabled, bug risk
-   - Suggested Issue: "chore: Add type hints to core business logic"
+3. **core/ の型ヒントカバレッジ低下**
+   - 対象: src/core/*.py (8 files)
+   - 影響: IDE補完無効化、バグリスク
+   - Issue案: "chore: コアビジネスロジックに型ヒントを追加"
 
-4. **Test Coverage Gap**
-   - Target: src/core/users.py, src/core/orders.py
-   - Impact: Refactoring regression risk
-   - Suggested Issue: "test: Add unit tests for user and order services"
+4. **テストカバレッジギャップ**
+   - 対象: src/core/users.py, src/core/orders.py
+   - 影響: リファクタリング時のリグレッションリスク
+   - Issue案: "test: ユーザーおよび注文サービスのユニットテストを追加"
 
-### Low Priority
+### 低優先度
 
-5. **Docstring Missing**
-   - Target: 55% of codebase
-   - Impact: Code comprehension cost
-   - Suggested Issue: "docs: Add docstrings to public APIs"
+5. **Docstring未記述**
+   - 対象: コードベースの55%
+   - 影響: コード理解コスト
+   - Issue案: "docs: パブリックAPIにDocstringを追加"
 
-6. **Technical Debt Cleanup**
-   - Target: 16 TODO/FIXME/HACK items
-   - Impact: Accumulated maintenance burden
-   - Suggested Issue: "chore: Address technical debt items"
+6. **技術的負債のクリーンアップ**
+   - 対象: 16個のTODO/FIXME/HACK項目
+   - 影響: メンテナンス負担の蓄積
+   - Issue案: "chore: 技術的負債項目に対処"
 ```
 
 ---
 
 ## MCP Integration
 
-| Phase | Serena Tool | Purpose |
-|-------|-------------|---------|
-| Discovery | list_dir | Full directory scan |
-| Discovery | find_file | Locate config/doc files |
-| Analysis | get_symbols_overview | Extract code symbols |
-| Analysis | search_for_pattern | Find patterns/concerns |
-| Output | create_text_file | Write project_index.md |
+| フェーズ | Serena ツール | 目的 |
+|---------|-------------|------|
+| Discovery | list_dir | フルディレクトリスキャン |
+| Discovery | find_file | 設定/ドキュメントファイルの特定 |
+| Analysis | get_symbols_overview | コードシンボルの抽出 |
+| Analysis | search_for_pattern | パターン/懸念事項の検出 |
+| Output | create_text_file | project_index.md の書き込み |
 
 ---
 
-## Auto-Detection Rules
+## 自動検出ルール
 
-### Language Detection
+### 言語検出
 
-| File Pattern | Language |
-|--------------|----------|
+| ファイルパターン | 言語 |
+|----------------|------|
 | `*.py`, `pyproject.toml` | Python |
 | `*.ts`, `*.tsx`, `tsconfig.json` | TypeScript |
 | `*.js`, `*.jsx`, `package.json` | JavaScript |
@@ -237,10 +237,10 @@ Generated: {timestamp}
 | `*.rs`, `Cargo.toml` | Rust |
 | `*.java`, `pom.xml` | Java |
 
-### Framework Detection
+### フレームワーク検出
 
-| Indicator | Framework |
-|-----------|-----------|
+| 指標 | フレームワーク |
+|------|--------------|
 | fastapi in deps | FastAPI |
 | django in deps | Django |
 | flask in deps | Flask |
@@ -251,115 +251,115 @@ Generated: {timestamp}
 
 ---
 
-## Boundaries
+## 境界
 
-### Will Do ✅
+### やること ✅
 
-- Maximum depth investigation of project structure
-- Symbol extraction and dependency analysis
-- Quality metrics calculation
-- Issue candidate identification with priority
-- Output to `claudedocs/project_index.md`
+- プロジェクト構造の最大深度調査
+- シンボル抽出と依存関係分析
+- 品質メトリクスの計算
+- 優先度付きIssue候補の特定
+- `claudedocs/project_index.md` への出力
 
-### Will NOT Do ❌
+### やらないこと ❌
 
-- Modify any project files
-- Edit existing documentation
-- Create Issues automatically (manual step after review)
-- Execute tests or build commands
-- Make code changes
+- プロジェクトファイルの変更
+- 既存ドキュメントの編集
+- Issueの自動作成（レビュー後に手動で実施）
+- テストやビルドコマンドの実行
+- コード変更
 
 ---
 
-## Examples
+## 使用例
 
-### Basic Usage
+### 基本的な使い方
 
 ```
 User: /gh:index
 
 Claude:
-1. [Discovery] Scanning project structure...
-   - Found: Python project (pyproject.toml)
-   - Framework: FastAPI
-   - 45 source files, 23 test files
+1. [Discovery] プロジェクト構造をスキャン中...
+   - 検出: Python プロジェクト (pyproject.toml)
+   - フレームワーク: FastAPI
+   - 45 ソースファイル、23 テストファイル
 
-2. [Analysis] Extracting symbols...
-   - 12 classes, 45 functions analyzed
-   - Type coverage: 78%
-   - Test coverage: 65%
+2. [Analysis] シンボルを抽出中...
+   - 12 クラス、45 関数を分析
+   - 型カバレッジ: 78%
+   - テストカバレッジ: 65%
 
-3. [Indexing] Generating index...
-   - Writing claudedocs/project_index.md
+3. [Indexing] インデックスを生成中...
+   - claudedocs/project_index.md に書き込み
 
-4. [Issue Candidates] 6 candidates identified
+4. [Issue Candidates] 6件の候補を特定
    - High: 2 (API docs, security)
    - Medium: 2 (types, tests)
    - Low: 2 (docstrings, tech debt)
 
-✅ Index generated: claudedocs/project_index.md
-→ Review candidates and create Issues with /gh:issue create
+✅ インデックス生成完了: claudedocs/project_index.md
+→ 候補を確認し、/gh:issue create でIssueを作成してください
 ```
 
-### With Target Directory
+### ディレクトリ指定
 
 ```
 User: /gh:index src/
 
 Claude:
-1. [Discovery] Scanning src/ only...
+1. [Discovery] src/ のみをスキャン中...
    ...
 ```
 
 ---
 
-## Related Commands
+## 関連コマンド
 
 ```bash
-/gh:index              # Generate project index (this command)
+/gh:index              # プロジェクトインデックスを生成（このコマンド）
                        ↓
-/gh:issue create       # Create Issue from candidates
+/gh:issue create       # 候補からIssueを作成
                        ↓
-/gh:start 42           # Start work on Issue
+/gh:start 42           # Issueの作業を開始
 ```
 
 ---
 
-## Execution Instructions
+## 実行指示
 
-**You are now executing `/gh:index`.**
+**あなたは今 `/gh:index` を実行しています。**
 
-Follow these steps:
+以下の手順に従ってください:
 
-1. **Activate Serena** (if not active):
+1. **Serena をアクティベート**（未アクティブの場合）:
    ```
-   activate_project(user's current directory)
+   activate_project(ユーザーのカレントディレクトリ)
    ```
 
 2. **Phase 1 - Discovery**:
    - `list_dir(".", recursive=true)`
-   - Detect language/framework from config files
-   - Inventory documentation files
+   - 設定ファイルから言語/フレームワークを検出
+   - ドキュメントファイルの棚卸
 
 3. **Phase 2 - Analysis**:
-   - `get_symbols_overview()` for each code file
-   - `search_for_pattern()` for TODO/FIXME/security concerns
-   - Calculate quality metrics
+   - 各コードファイルに対して `get_symbols_overview()`
+   - `search_for_pattern()` でTODO/FIXME/セキュリティ懸念を検出
+   - 品質メトリクスを計算
 
 4. **Phase 3 - Indexing**:
-   - Compile findings into Markdown format
-   - Ensure `claudedocs/` directory exists
-   - Write `claudedocs/project_index.md`
+   - 調査結果をMarkdown形式にコンパイル
+   - `claudedocs/` ディレクトリの存在を確認
+   - `claudedocs/project_index.md` に書き込み
 
 5. **Phase 4 - Issue Candidates**:
-   - Prioritize findings by impact
-   - Generate suggested Issue titles
-   - Include in output file
+   - 影響度に基づいて調査結果を優先度付け
+   - Issue タイトル案を生成
+   - 出力ファイルに含める
 
-6. **Report**:
-   - Summary of findings
-   - Path to generated file
-   - Prompt to review and create Issues
+6. **レポート**:
+   - 調査結果のサマリー
+   - 生成ファイルへのパス
+   - Issueのレビューと作成を促す
 
 ---
 

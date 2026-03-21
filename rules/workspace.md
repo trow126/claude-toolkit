@@ -1,17 +1,17 @@
-# Workspace Rules
+# ワークスペースルール
 
-## Hygiene
-- Clean temporary files, scripts, and directories after operations
-- Remove build artifacts, logs, and debugging outputs
-- Never leave temporary files that could be accidentally committed
-- Delete `claudedocs/brainstorm/*.md` when corresponding Issue is closed
+## 衛生管理
+- 操作後に一時ファイル、スクリプト、ディレクトリを削除する
+- ビルド成果物、ログ、デバッグ出力を削除する
+- 誤ってコミットされる可能性のある一時ファイルを残さない
+- 対応する Issue がクローズされたら `claudedocs/brainstorm/*.md` を削除する
 
-## File Organization
-- Claude-specific docs in `claudedocs/` directory
-- Tests in `tests/`, `__tests__/`, or `test/` directories
-- Scripts in `scripts/`, `tools/`, or `bin/` directories
-- Check existing patterns before creating new directories
+## ファイル構成
+- Claude 固有のドキュメントは `claudedocs/` ディレクトリに配置
+- テストは `tests/`, `__tests__/`, または `test/` ディレクトリに配置
+- スクリプトは `scripts/`, `tools/`, または `bin/` ディレクトリに配置
+- 新しいディレクトリを作成する前に既存のパターンを確認する
 
-## Temporal Awareness
-- Always verify current date from environment before temporal assessments
-- Never assume from knowledge cutoff dates
+## 時間的認識
+- 時間に関する判断の前に、環境から現在の日付を必ず確認する
+- ナレッジカットオフ日から推測しない

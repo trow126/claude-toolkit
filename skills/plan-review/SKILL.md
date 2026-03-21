@@ -1,11 +1,11 @@
 ---
 name: plan-review
-description: "Multi-Perspective Plan Review"
+description: "マルチパースペクティブ計画レビュー"
 ---
 
-# Multi-Perspective Plan Review
+# マルチパースペクティブ計画レビュー
 
-Review an implementation plan from 3 independent perspectives using specialized subagents.
+3つの独立した視点から、専門サブエージェントを使って実装計画をレビューする。
 
 ## Arguments
 
@@ -13,120 +13,120 @@ $ARGUMENTS
 
 ## Instructions
 
-You are orchestrating a multi-perspective review of an implementation plan.
+あなたは実装計画のマルチパースペクティブレビューをオーケストレーションします。
 
-### Step 1: Locate the Plan
+### Step 1: 計画の特定
 
-**If arguments contain a file path:**
-- This is "different session" mode
-- Read the specified file as the plan
-- You have NO prior context about the codebase
-- Reviewers will need to explore the codebase themselves
+**引数にファイルパスが含まれている場合:**
+- 「別セッション」モード
+- 指定されたファイルを計画として読み込む
+- コードベースに関する事前コンテキストはなし
+- レビュアーは自らコードベースを探索する必要がある
 
-**If arguments are empty:**
-- This is "same session" mode
-- Find the most recently created or discussed plan file in this conversation
-- If you cannot find one, ask the user which plan file to review
-- You already have codebase context from the planning session
+**引数が空の場合:**
+- 「同一セッション」モード
+- この会話で最近作成または議論された計画ファイルを見つける
+- 見つからない場合、どの計画ファイルをレビューするかユーザーに確認する
+- 計画セッションからのコードベースコンテキストがすでにある
 
-### Step 2: Read the Plan and Project Context
+### Step 2: 計画とプロジェクトコンテキストの読み込み
 
-1. Read the plan file content
-2. Read these files if they exist (pass relevant parts to reviewers):
-   - CLAUDE.md (project root and .claude/)
-   - LEARNINGS.md or claudedocs/learnings.md
-   - Any other project convention files referenced in CLAUDE.md
+1. 計画ファイルの内容を読み込む
+2. 以下のファイルが存在すれば読み込む（関連部分をレビュアーに渡す）:
+   - CLAUDE.md（プロジェクトルートおよび .claude/）
+   - LEARNINGS.md または claudedocs/learnings.md
+   - CLAUDE.md で参照されているその他のプロジェクト規約ファイル
 
-### Step 3: Determine Review Mode
+### Step 3: レビューモードの決定
 
-**Same session mode** (no arguments):
-- Include in each reviewer's prompt: the plan content, list of relevant files you know about, and key decisions from the planning session
-- Reviewers can focus on analysis rather than exploration
+**同一セッションモード**（引数なし）:
+- 各レビュアーのプロンプトに含める: 計画内容、既知の関連ファイル一覧、計画セッションでの主要な意思決定
+- レビュアーは探索ではなく分析に集中できる
 
-**Different session mode** (file path provided):
-- Include in each reviewer's prompt: the plan content and instruction to explore the codebase first
-- The feasibility reviewer especially needs to verify codebase structure
+**別セッションモード**（ファイルパス指定あり）:
+- 各レビュアーのプロンプトに含める: 計画内容とコードベースの事前探索指示
+- 特に実現可能性レビュアーはコードベース構造の検証が必要
 
-### Step 4: Spawn 3 Reviewers in Parallel
+### Step 4: 3名のレビュアーを並列起動
 
-Launch these subagents simultaneously using the Agent tool:
+Agent ツールを使って以下のサブエージェントを同時に起動する:
 
 1. **plan-reviewer-feasibility**
-   Prompt: "Review this implementation plan for feasibility. [plan content] [mode-specific context]"
+   プロンプト: "この実装計画の実現可能性をレビューしてください。[計画内容] [モード固有のコンテキスト]"
 
 2. **plan-reviewer-completeness**
-   Prompt: "Audit this implementation plan for completeness. [plan content] [CLAUDE.md / LEARNINGS.md content if found]"
+   プロンプト: "この実装計画の完全性を監査してください。[計画内容] [CLAUDE.md / LEARNINGS.md の内容（見つかった場合）]"
 
 3. **plan-reviewer-critic**
-   Prompt: "Critique this implementation plan's scope and risks. [plan content] [project description if available]"
+   プロンプト: "この実装計画のスコープとリスクを批評してください。[計画内容] [プロジェクト概要（利用可能な場合）]"
 
-Each prompt MUST include the full plan text. Do not summarize or truncate the plan.
+各プロンプトには計画の全文を含めること。計画を要約したり省略してはならない。
 
-### Step 5: Synthesize Results
+### Step 5: 結果の統合
 
-After all 3 reviewers return, create a unified review document with this structure:
+3名のレビュアー全員が返答した後、以下の構造で統合レビュードキュメントを作成する:
 
 ```
-# Plan Review: [plan title or description]
+# Plan Review: [計画のタイトルまたは説明]
 
-**Date**: [current date]
-**Plan file**: [path]
+**Date**: [現在の日付]
+**Plan file**: [パス]
 **Mode**: [same-session / different-session]
 
-## Executive Summary
+## エグゼクティブサマリー
 
-[2-3 sentence overall assessment]
+[2-3文の総合評価]
 
-**Verdict**: [APPROVE / APPROVE_WITH_CHANGES / REQUEST_REVISION / REJECT]
-- BLOCKERs: [count]
-- WARNINGs: [count]
-- INFOs: [count]
+**判定**: [APPROVE / APPROVE_WITH_CHANGES / REQUEST_REVISION / REJECT]
+- BLOCKERs: [件数]
+- WARNINGs: [件数]
+- INFOs: [件数]
 
-## BLOCKERs (must fix before implementation)
+## BLOCKERs（実装前に修正必須）
 
-[All BLOCKER findings from all reviewers, with source attribution]
+[全レビュアーからの全 BLOCKER 指摘事項、ソース帰属付き]
 
-## WARNINGs (should address)
+## WARNINGs（対応推奨）
 
-[All WARNING findings from all reviewers, with source attribution]
+[全レビュアーからの全 WARNING 指摘事項、ソース帰属付き]
 
-## INFOs (consider)
+## INFOs（検討事項）
 
-[All INFO findings from all reviewers, with source attribution]
+[全レビュアーからの全 INFO 指摘事項、ソース帰属付き]
 
-## Reviewer Reports
+## レビュアーレポート
 
-### Feasibility Analysis
-[Full report from feasibility reviewer]
+### 実現可能性分析
+[実現可能性レビュアーの完全レポート]
 
-### Completeness Audit
-[Full report from completeness reviewer]
+### 完全性監査
+[完全性レビュアーの完全レポート]
 
-### Scope & Risk Critique
-[Full report from critic reviewer]
+### スコープ & リスク批評
+[批評レビュアーの完全レポート]
 
-## Recommended Plan Modifications
+## 推奨される計画修正
 
-[Prioritized list of specific changes to make to the plan]
+[計画に加えるべき具体的な変更の優先順位付きリスト]
 
-1. [BLOCKER fixes first]
-2. [WARNING fixes second]
-3. [INFO suggestions last]
+1. [BLOCKER の修正を最優先]
+2. [WARNING の修正を次に]
+3. [INFO の提案を最後に]
 ```
 
-### Step 6: Save and Report
+### Step 6: 保存と報告
 
-1. Create `claudedocs/reviews/` directory if it doesn't exist
-2. Save the review to `claudedocs/reviews/plan-review-[YYYYMMDD-HHMM].md`
-3. Display a summary to the user:
-   - Overall verdict
-   - Number of BLOCKERs / WARNINGs / INFOs
-   - Top 3 most important findings
-   - Path to the full review file
+1. `claudedocs/reviews/` ディレクトリが存在しなければ作成
+2. レビューを `claudedocs/reviews/plan-review-[YYYYMMDD-HHMM].md` に保存
+3. ユーザーにサマリーを表示:
+   - 総合判定
+   - BLOCKERs / WARNINGs / INFOs の件数
+   - 最も重要な指摘事項 Top 3
+   - 完全レビューファイルへのパス
 
-### Verdict Criteria
+### 判定基準
 
-- **APPROVE**: No BLOCKERs, 0-2 WARNINGs, plan is solid
-- **APPROVE_WITH_CHANGES**: No BLOCKERs, some WARNINGs that should be addressed
-- **REQUEST_REVISION**: 1+ BLOCKERs or many WARNINGs, plan needs significant changes
-- **REJECT**: Multiple BLOCKERs, fundamental issues with the approach
+- **APPROVE**: BLOCKER なし、WARNING 0-2件、計画は堅実
+- **APPROVE_WITH_CHANGES**: BLOCKER なし、対応すべき WARNING がいくつかある
+- **REQUEST_REVISION**: BLOCKER 1件以上または WARNING 多数、計画に大幅な変更が必要
+- **REJECT**: BLOCKER 複数、アプローチに根本的な問題がある

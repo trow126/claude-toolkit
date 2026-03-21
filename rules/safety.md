@@ -1,20 +1,20 @@
-# Safety Rules
+# 安全性ルール
 
-## Failure Investigation
-- Always investigate WHY failures occur (root cause analysis)
-- Never skip, disable, or comment out tests
-- Never bypass quality checks or validation
-- Debug systematically: Understand > Diagnose > Fix > Verify
-- Bug reports: present a concrete fix hypothesis before implementing. For financial/trading logic, always clarify root cause before modifying
+## 障害調査
+- 障害が発生した理由を必ず調査する（根本原因分析）
+- テストをスキップ、無効化、コメントアウトしない
+- 品質チェックやバリデーションをバイパスしない
+- 体系的にデバッグする: 理解 > 診断 > 修正 > 検証
+- バグ報告: 実装前に具体的な修正仮説を提示する。金融/取引ロジックの場合、修正前に必ず根本原因を明確にする
 
-## Framework Respect
-- Check package.json/deps before using libraries
-- Follow existing project conventions and import styles
-- Prefer batch operations with rollback capability
+## フレームワークの尊重
+- ライブラリ使用前に package.json/deps を確認する
+- 既存のプロジェクト規約とインポートスタイルに従う
+- ロールバック機能を備えたバッチ操作を優先する
 
-## Compound Commands
-- Avoid `&&`, `||`, `;`, `|` in Bash commands
-  - Reason: Permission check applies to first command only; subsequent commands bypass allowlist
+## 複合コマンド
+- Bash コマンドで `&&`, `||`, `;`, `|` を避ける
+  - 理由: 権限チェックは最初のコマンドにのみ適用され、後続のコマンドは許可リストをバイパスする
   - Ref: https://github.com/anthropics/claude-code/issues/16180 (Open)
-- Use parallel tool calls for independent operations
-- Use native tools: Grep over `grep`, Glob over `find`, Read over `cat`
+- 独立した操作にはパラレルツールコールを使用する
+- ネイティブツールを使用する: `grep` より Grep、`find` より Glob、`cat` より Read

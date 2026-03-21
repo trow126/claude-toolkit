@@ -33,7 +33,7 @@ argument-hint: "[pr-number]"
 
 ## Behavioral Flow
 
-### Phase 0: Context Loading
+### Phase 0: コンテキスト読み込み
 
 ```yaml
 1. PR情報取得:
@@ -49,7 +49,7 @@ argument-hint: "[pr-number]"
    - docs/PLAN.md（アーキテクチャ方針）
    - .coderabbit.yaml（レビュー設定）
 
-4. 🆕 技術的負債状況確認:
+4. 技術的負債状況確認:
    claudedocs/technical_debt.md を読み込み
    → 未対応件数を表示:
    ┌──────────────────────────────────────┐
@@ -65,7 +65,7 @@ argument-hint: "[pr-number]"
    # または worktree の場合は cd
 ```
 
-### Phase 1: Review Comments Fetch（マルチソース）
+### Phase 1: レビューコメント取得（マルチソース）
 
 ```yaml
 5. レビューソース別取得:
@@ -128,7 +128,7 @@ argument-hint: "[pr-number]"
    └────────────────────────────────────────┘
 ```
 
-### Phase 2: Alignment Analysis（各指摘に対して）
+### Phase 2: 整合性分析（各指摘に対して）
 
 ```yaml
 8. 🔴 整合性分析（必須・各指摘に対して実行）:
@@ -168,7 +168,7 @@ argument-hint: "[pr-number]"
      - 誤った指摘（false positive）
 ```
 
-### Phase 3: User Decision（一括確認）
+### Phase 3: ユーザー判断（一括確認）
 
 ```yaml
 10. 全指摘を一覧表示（ソース統合）:
@@ -267,7 +267,7 @@ argument-hint: "[pr-number]"
     "
 ```
 
-### Phase 3.5: Technical Debt Tracking（🆕 必須）
+### Phase 3.5: 技術的負債追跡（必須）
 
 ```yaml
 12. 却下/スキップした指摘を記録（🔴 CRITICAL - 取りこぼし防止）:
@@ -323,7 +323,7 @@ argument-hint: "[pr-number]"
     └──────────────────────────────────────────┘
 ```
 
-### Phase 4: Apply Fixes
+### Phase 4: 修正適用
 
 ```yaml
 12. 採用した指摘を適用:
@@ -351,7 +351,7 @@ argument-hint: "[pr-number]"
     - scripts/stream_data.py:213 - 冗長チェック (Trivial)
 ```
 
-### Phase 5: Verification
+### Phase 5: 検証
 
 ```yaml
 14. Lint チェック:
@@ -380,7 +380,7 @@ argument-hint: "[pr-number]"
     ✅ Tests: 56 passed in 1.2s
 ```
 
-### Phase 6: Commit & Push
+### Phase 6: コミット & プッシュ
 
 ```yaml
 18. 確認付きコミット:
@@ -433,7 +433,7 @@ argument-hint: "[pr-number]"
 --no-debt-tracking  # 技術的負債記録をスキップ（非推奨）
 ```
 
-## Error Handling
+## エラーハンドリング
 
 ```bash
 # PRが見つからない
@@ -453,7 +453,7 @@ argument-hint: "[pr-number]"
 → 手動修正を促す、該当ファイルを開く
 ```
 
-## Integration Points
+## 連携ポイント
 
 ```yaml
 レビューソース:
@@ -486,7 +486,7 @@ Issue連携:
 
 **あなたは今、`/gh:review` コマンドを実行しています。**
 
-### 🚨 CRITICAL: 見逃し防止ルール
+### 見逃し防止ルール
 
 ```yaml
 絶対禁止事項:
@@ -505,49 +505,49 @@ Issue連携:
 ### 必須実行フロー
 
 ```yaml
-1. Phase 0: Context Loading
+1. Phase 0: コンテキスト読み込み
    - PR情報取得（ブランチ名、関連Issue）
    - Issue要件取得
    - CLAUDE.md / docs/PLAN.md 読み込み
-   - 🆕 claudedocs/technical_debt.md 読み込み → 未対応件数表示
+   - claudedocs/technical_debt.md 読み込み → 未対応件数表示
    - ローカルブランチ準備
 
-2. Phase 1: Review Comments Fetch（🔴 全件・全ソース取得必須）
+2. Phase 1: レビューコメント取得（🔴 全件・全ソース取得必須）
    - gh api でインラインコメント取得（CodeRabbit, Codex等）
    - gh api でPRコメント取得 → "## Automated Code Review" をパース（Self-Review）
    - severity/category で分類
-   - 🚨 ソース別・合計コメント数を記録: "N件のコメントを取得（CR: X, SR: Y, CX: Z）"
+   - ソース別・合計コメント数を記録: "N件のコメントを取得（CR: X, SR: Y, CX: Z）"
 
-3. Phase 2: Alignment Analysis（🔴 必須）
+3. Phase 2: 整合性分析（🔴 必須）
    - 各指摘に対して整合性分析
    - Issue要件との照合
    - プロジェクト方針との照合
    - 推奨アクション決定
 
-4. Phase 3: User Decision（🔴 必須・一括確認）
-   - 🚨 全コメントを一覧表形式で表示
-   - 🚨 AskUserQuestion 1回で一括確認（推奨通り/個別調整/全採用/全スキップ）
+4. Phase 3: ユーザー判断（🔴 必須・一括確認）
+   - 全コメントを一覧表形式で表示
+   - AskUserQuestion 1回で一括確認（推奨通り/個別調整/全採用/全スキップ）
    - 「個別に調整」選択時のみ詳細確認モードへ
    - 却下確定後に CodeRabbit へ一括返信
 
-5. Phase 3.5: Technical Debt Tracking（🔴 必須・取りこぼし防止）
+5. Phase 3.5: 技術的負債追跡（🔴 必須・取りこぼし防止）
    - 却下/スキップした指摘を claudedocs/technical_debt.md に記録
-   - 🚨 「スコープ外」却下時はフォローアップIssue作成を確認
+   - 「スコープ外」却下時はフォローアップIssue作成を確認
    - 負債サマリー表示（累計件数）
 
-6. Phase 4: Apply Fixes
+6. Phase 4: 修正適用
    - 採用した指摘を修正
    - 修正サマリー表示
 
-7. Phase 5: Verification（🔴 必須）
+7. Phase 5: 検証（🔴 必須）
    - ruff check
    - ruff format
    - pytest
 
-8. Phase 6: Commit & Push
+8. Phase 6: コミット & プッシュ
    - 確認付きコミット
    - プッシュ
-   - 🚨 最終チェックリスト確認:
+   - 最終チェックリスト確認:
      ```
      ✅ 全 N 件のコメントを確認済み
      ✅ 対応: X件 / スキップ: Y件 / 却下: Z件
@@ -594,7 +594,7 @@ Issue連携:
     → 最も具体的な修正案を採用
 ```
 
-## Related Commands
+## 関連コマンド
 
 ```bash
 /gh:start 42        # Issue作業開始
@@ -604,10 +604,10 @@ Issue連携:
 
 ## Tips
 
-💡 **Trivial も記録**: 後回しにする場合は必ず technical_debt.md に記録
-💡 **却下は理由を明記**: CodeRabbit への返信で次回レビュー改善
-💡 **テスト必須**: 修正後は必ずテスト実行
-💡 **再レビュー自動**: push すれば CodeRabbit が自動で再確認
+- **Trivial も記録**: 後回しにする場合は必ず technical_debt.md に記録
+- **却下は理由を明記**: CodeRabbit への返信で次回レビュー改善
+- **テスト必須**: 修正後は必ずテスト実行
+- **再レビュー自動**: push すれば CodeRabbit が自動で再確認
 
 ---
 
@@ -615,5 +615,5 @@ Issue連携:
 **Version**: 2.0.0
 **Changelog**: 
 - v2.0.0 - 統合レビュー対応: セルフレビュー（Automated Code Review）・Codex等のマルチソース統合、ソース別フィルタ、重複検出、セルフレビュー固有判断基準
-- v1.2.0 - Added Phase 3.5 Technical Debt Tracking to prevent long-term oversight
-- v1.1.0 - Added CRITICAL section to prevent comment oversight (Phase 3 enforcement)
+- v1.2.0 - Phase 3.5 技術的負債追跡を追加し、長期的な見落としを防止
+- v1.1.0 - コメント見落とし防止のためのCRITICALセクションを追加（Phase 3 の強制実行）
