@@ -87,12 +87,9 @@ Closes #N  ← Issue 検出時のみ
 
 ---
 
-## Phase 3: 確認とプッシュ
+## Phase 3: プッシュ
 
-1. **ユーザー確認**: タイトルと本文をユーザーに表示
-   - 修正指示があれば反映
-
-2. **プッシュ**: `git push -u origin <current-branch>` を実行（独立コマンド）
+1. **プッシュ**: `git push -u origin <current-branch>` を実行（独立コマンド）
    - 成功 → Phase 4 へ
    - 失敗時の対応:
      - reject → 「リモートに変更があります。`git pull --rebase` 後に再実行してください」で停止
