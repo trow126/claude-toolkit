@@ -598,6 +598,7 @@ Issue連携:
 
 ```bash
 /gh:start 42        # Issue作業開始
+/gh:pr              # PR作成
 /gh:review 17       # レビュー対応（このコマンド）
 /gh:issue close 42  # Issue完了・振り返り
 ```

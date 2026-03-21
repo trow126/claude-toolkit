@@ -1,0 +1,177 @@
+---
+name: gh:pr
+description: "PR作成を自動化。ブランチ検出・差分解析・タイトル/本文生成・Issue連携・push制御を一括実行"
+argument-hint: "[base-branch]"
+allowed-tools:
+  - Bash
+  - Read
+  - Glob
+  - Grep
+---
+
+# /gh:pr - PR 作成スキル
+
+> **原則**: PR作成に特化。セルフレビューは Hook+rules が自動トリガー。
+
+## 使い方
+
+```bash
+/gh:pr            # ベースブランチ自動検出 (main/master)
+/gh:pr develop    # ベースブランチ指定
+```
+
+---
+
+## 制約
+
+- **Bash 複合コマンド禁止**: `&&`, `||`, `;`, `|` を使わない。各コマンドは独立実行
+- **`gh pr create` は1回のみ実行**: 失敗時はコマンドを表示してユーザーに手動委譲（Hook 多重発火防止）
+
+---
+
+## Phase 1: 事前チェック
+
+1. **未コミットチェック**: `git status --porcelain` を実行
+   - 変更あり → 変更内容を `git diff` で確認し、Conventional Commits 形式でコミットを実行してから続行
+   - 変更なし → 次へ
+
+2. **ブランチ確認**: `git branch --show-current` を実行
+   - 空（HEAD detached）→ エラー停止: 「ブランチが検出できません。feature ブランチで作業してください」
+   - `main` または `master` → エラー停止: 「main/master ブランチでは PR を作成できません。feature ブランチで作業してください」
+
+3. **既存 PR チェック**: `gh pr list --head <current-branch> --json number,url` を実行
+   - PR が存在 → PR URL を表示して終了: 「既存の PR があります: <URL>」
+
+4. **ベースブランチ決定**:
+   - 引数あり → `git show-ref --verify refs/heads/<arg>` で存在確認
+     - 存在しない → エラー停止: 「ベースブランチ '<name>' が見つかりません」
+   - 引数なし → `git show-ref --verify refs/heads/main` を試行、失敗なら `refs/heads/master`
+     - どちらも存在しない → エラー停止: 「main/master ブランチが見つかりません。ベースブランチを引数で指定してください」
+
+5. **コミット確認**: `git log <base>..HEAD --oneline` を実行
+   - 0件 → エラー停止: 「ベースブランチ '<base>' との差分がありません」
+
+**完了条件**: ブランチ名、ベースブランチ、コミット一覧が確定
+
+---
+
+## Phase 2: PR 内容生成
+
+1. **差分取得**: `git diff <base>..HEAD` で全差分取得
+
+2. **コミット一覧**: `git log <base>..HEAD --oneline` でメッセージ一覧取得
+
+3. **タイトル生成**:
+   - 単一コミット → コミットメッセージの1行目をそのまま使用（70文字超は切り捨て）
+   - 複数コミット → 最多出現の Conventional Commits プレフィックスを採用し、変更の要約を生成（70文字以内）
+
+4. **Issue 連携**:
+   - ブランチ名から Issue 番号を正規表現で抽出
+     - パターン: `issue-(\d+)`, `(\d+)-`, `feat/(\d+)`, `fix/(\d+)` 等
+   - 未検出 → `Closes #N` を省略
+   - 検出 → `gh issue view <N> --json title,body` で Issue 情報取得（PR本文の参考に使用）
+
+5. **PR 本文生成**:
+
+```markdown
+## Summary
+- (差分とコミットメッセージから変更内容を1-3個のバレットポイントで要約)
+
+## Test plan
+- [ ] (テスト手順のチェックリスト)
+
+Closes #N  ← Issue 検出時のみ
+```
+
+**完了条件**: タイトルと本文のドラフトが完成
+
+---
+
+## Phase 3: 確認とプッシュ
+
+1. **ユーザー確認**: タイトルと本文をユーザーに表示
+   - 修正指示があれば反映
+
+2. **プッシュ**: `git push -u origin <current-branch>` を実行（独立コマンド）
+   - 成功 → Phase 4 へ
+   - 失敗時の対応:
+     - reject → 「リモートに変更があります。`git pull --rebase` 後に再実行してください」で停止
+     - auth error → 「認証エラー。`gh auth status` で確認してください」で停止
+     - その他 → エラー内容を表示、手動 push を提案して停止
+
+**完了条件**: リモートブランチが最新
+
+---
+
+## Phase 4: PR 作成
+
+1. **PR 作成**: 以下のコマンドを**1回のみ**実行（独立コマンド）
+
+```bash
+gh pr create --title "<タイトル>" --body "$(cat <<'EOF'
+<本文>
+EOF
+)" --base <base-branch>
+```
+
+2. **成功時**:
+   - PR URL を表示
+   - 案内: 「セルフレビューで問題発見時は `/gh:review <PR番号>` で対応してください」
+
+3. **失敗時**:
+   - エラー内容を表示
+   - 実行すべきコマンドを表示してユーザーに手動実行を委譲
+   - **リトライしない**（Hook 多重発火防止）
+
+**完了後**: Hook (`pr-review-hook.sh`) が `gh pr create` を検出し自動でセルフレビューをトリガー
+
+---
+
+## エラーハンドリング
+
+| 状態 | 対応 |
+|------|------|
+| 未コミットの変更あり | 変更内容を確認し、Conventional Commits 形式でコミットしてから続行 |
+| HEAD detached / main/master | 「feature ブランチで作業してください」で停止 |
+| 既存 PR あり | PR URL を表示して終了 |
+| ベースブランチが存在しない | 「ベースブランチ '<name>' が見つかりません」で停止 |
+| コミットなし | 「ベースブランチとの差分がありません」で停止 |
+| push 失敗: reject | 「リモートに変更があります。`git pull --rebase` 後に再実行してください」 |
+| push 失敗: auth error | 「認証エラー。`gh auth status` で確認してください」 |
+| push 失敗: その他 | エラー内容を表示、手動 push を提案 |
+| PR 作成失敗 | エラー内容とコマンドを表示。ユーザーに手動実行を委譲 |
+
+---
+
+## 使用例
+
+```
+# 基本
+User: /gh:pr
+Claude:
+1. [チェック] 未コミット変更なし、ブランチ: feature/add-auth、既存PRなし
+2. [ベース] main (自動検出)、3コミット
+3. [生成] タイトル: "feat: add user authentication (#42)"
+4. [確認] タイトル・本文をユーザーに表示
+5. [push] git push -u origin feature/add-auth
+6. [PR作成] gh pr create 実行 → PR URL 表示
+7. [Hook] セルフレビュー自動実行
+
+# gh:start との連携
+User: /gh:start 42   → Issue #42 の作業完了
+User: /gh:pr          → PR 作成
+→ Hook がセルフレビューを自動実行
+→ 問題発見時は /gh:review で対応
+```
+
+---
+
+## 関連コマンド
+
+```
+/gh:start 42    → Issue 駆動開発（実装・コミット）
+/gh:pr          → PR 作成（本スキル）
+                   ↓ Hook が自動レビュー
+/gh:review      → レビュー指摘への対応
+/gh:issue close → Issue クローズ・振り返り
+```

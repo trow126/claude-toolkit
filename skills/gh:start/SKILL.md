@@ -181,6 +181,7 @@ Claude:
 ## Related Commands
 
 - `/gh:issue` - Issue管理（作成・クローズ）
+- `/gh:pr` - PR作成
 - `/gh:review` - CodeRabbitレビュー対応
 
 ---
