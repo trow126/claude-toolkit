@@ -1,26 +1,59 @@
 #!/bin/bash
-# Build or query a simple file index for a target project directory.
+# Build or query a simple file index for the current project.
 
 set -euo pipefail
 
 usage() {
     cat <<'EOF'
 Usage:
-  project-locate <target-dir>
-  project-locate <target-dir> <query>
+  project-locate
+  project-locate <query>
+  project-locate --dir <target-dir>
+  project-locate --dir <target-dir> <query>
+  project-locate --update [--dir <target-dir>] [query]
 
 Environment:
   PROJECT_LOCATE_DB_FILE   Override the cache file path.
 EOF
 }
 
-if [[ $# -lt 1 || $# -gt 2 ]]; then
-    usage >&2
-    exit 1
-fi
+UPDATE_ONLY=false
+TARGET_DIR=""
+QUERY=""
 
-TARGET_DIR="$1"
-QUERY="${2:-}"
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        -h|--help)
+            usage
+            exit 0
+            ;;
+        -u|--update)
+            UPDATE_ONLY=true
+            shift
+            ;;
+        -d|--dir)
+            if [[ $# -lt 2 ]]; then
+                echo "Error: --dir requires a target directory" >&2
+                usage >&2
+                exit 1
+            fi
+            TARGET_DIR="$2"
+            shift 2
+            ;;
+        *)
+            QUERY="${QUERY:+$QUERY }$1"
+            shift
+            ;;
+    esac
+done
+
+if [[ -z "$TARGET_DIR" ]]; then
+    if GIT_ROOT=$(git rev-parse --show-toplevel 2>/dev/null); then
+        TARGET_DIR="$GIT_ROOT"
+    else
+        TARGET_DIR="$PWD"
+    fi
+fi
 
 if [[ ! -d "$TARGET_DIR" ]]; then
     echo "Error: target directory not found: $TARGET_DIR" >&2
@@ -33,7 +66,9 @@ DB_FILE="${PROJECT_LOCATE_DB_FILE:-$HOME/.cache/locate/${SLUG}-files.txt}"
 update_db() {
     echo "Updating file index for $TARGET_DIR..."
     mkdir -p "$(dirname "$DB_FILE")"
-    find "$TARGET_DIR" -type f > "$DB_FILE"
+    find "$TARGET_DIR" \
+        \( -name .git -o -name .venv -o -name node_modules -o -name dist -o -name build -o -name __pycache__ \) -prune \
+        -o -type f -print > "$DB_FILE"
     echo "Index updated: $(wc -l < "$DB_FILE") files"
 }
 
@@ -46,8 +81,14 @@ search_db() {
     grep -i -- "$QUERY" "$DB_FILE" | sort
 }
 
-if [[ -z "$QUERY" ]]; then
+if [[ "$UPDATE_ONLY" == true ]]; then
     update_db
+fi
+
+if [[ -z "$QUERY" ]]; then
+    if [[ "$UPDATE_ONLY" != true ]]; then
+        update_db
+    fi
 else
     search_db
 fi
