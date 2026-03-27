@@ -18,17 +18,31 @@ set -euo pipefail
 # 優先順:
 # 1. $SLACK_NOTIFY_ENV_FILE
 # 2. ~/.config/slack-notify.env
+# 3. $PWD/.env
+# 4. Git repository root の .env
+# 5. $HOME 配下の浅い階層にある .env を探索
 if [[ -z "${SLACK_WEBHOOK_URL:-}" ]]; then
     ENV_CANDIDATES=()
+    declare -A SEARCHED_FILES=()
 
     if [[ -n "${SLACK_NOTIFY_ENV_FILE:-}" ]]; then
         ENV_CANDIDATES+=("$SLACK_NOTIFY_ENV_FILE")
     fi
 
     ENV_CANDIDATES+=("$HOME/.config/slack-notify.env")
+    ENV_CANDIDATES+=("$PWD/.env")
+
+    if GIT_ROOT=$(git rev-parse --show-toplevel 2>/dev/null); then
+        ENV_CANDIDATES+=("$GIT_ROOT/.env")
+    fi
+
+    while IFS= read -r found_env; do
+        ENV_CANDIDATES+=("$found_env")
+    done < <(find "$HOME" -maxdepth 2 -type f -name ".env" 2>/dev/null | sort)
 
     for ENV_FILE in "${ENV_CANDIDATES[@]}"; do
-        if [[ -f "$ENV_FILE" ]]; then
+        if [[ -f "$ENV_FILE" ]] && [[ -z "${SEARCHED_FILES[$ENV_FILE]:-}" ]]; then
+            SEARCHED_FILES["$ENV_FILE"]=1
             SLACK_WEBHOOK_URL=$(grep -E "^SLACK_WEBHOOK_URL=" "$ENV_FILE" 2>/dev/null | cut -d= -f2- || true)
             if [[ -n "${SLACK_WEBHOOK_URL:-}" ]]; then
                 export SLACK_WEBHOOK_URL

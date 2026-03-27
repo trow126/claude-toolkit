@@ -49,7 +49,7 @@ Issueの作成と完了を担当するシンプルなコマンド。
    ```
 3. GitHub Projectsに追加（ステータス: "Todo"）
    ```bash
-   source scripts/gh-projects-integration.sh
+   source "$HOME/.claude/scripts/gh-projects-integration.sh"
    gh_projects_set_todo $ISSUE_NUMBER
    ```
 
