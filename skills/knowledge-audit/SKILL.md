@@ -41,9 +41,9 @@ find ~ -maxdepth 5 -name "technical_debt.md" -path "*/claudedocs/*" 2>/dev/null
 
 | State | Detection | Example |
 |-------|-----------|---------|
-| A: Raw only | No `# パターンカタログ` or numbered `# 1.` sections; only `## Issue #N:` entries | sample-solidity-project |
-| B: Hybrid | Has pattern catalog section AND raw issue log entries below | sample-model-project, sample-ml-project |
-| C: Compressed | Has `v2.0 (Compressed)` or version header; no raw issue entries | sample-reference-project (no action needed) |
+| A: Raw only | No `# パターンカタログ` or numbered `# 1.` sections; only `## Issue #N:` entries | repo-alpha |
+| B: Hybrid | Has pattern catalog section AND raw issue log entries below | repo-beta, repo-gamma |
+| C: Compressed | Has `v2.0 (Compressed)` or version header; no raw issue entries | repo-delta (no action needed) |
 
 #### Step 2: Classify Each Issue Entry
 
@@ -279,7 +279,7 @@ PR #AAA〜#BBB の追跡項目を精査:
 
 4. Update summary table and `最終更新` date
 
-**Reference model**: `~/projects/model-research/claudedocs/technical_debt.md` (3 audit rounds documented)
+**Reference model**: `~/projects/reference-project-b/claudedocs/technical_debt.md` (multiple audit rounds documented)
 
 ---
 
@@ -298,5 +298,5 @@ PR #AAA〜#BBB の追跡項目を精査:
 | Purpose | File | Lines |
 |---------|------|-------|
 | Compressed learnings | `~/projects/reference-project-a/claudedocs/learnings.md` | 635 |
-| Mature technical debt audit | `~/projects/model-research/claudedocs/technical_debt.md` | 254 |
+| Mature technical debt audit | `~/projects/reference-project-b/claudedocs/technical_debt.md` | 254 |
 | Global learnings checklist | `~/.claude/LEARNINGS.md` | 51 |

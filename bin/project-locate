@@ -1,0 +1,53 @@
+#!/bin/bash
+# Build or query a simple file index for a target project directory.
+
+set -euo pipefail
+
+usage() {
+    cat <<'EOF'
+Usage:
+  project-locate <target-dir>
+  project-locate <target-dir> <query>
+
+Environment:
+  PROJECT_LOCATE_DB_FILE   Override the cache file path.
+EOF
+}
+
+if [[ $# -lt 1 || $# -gt 2 ]]; then
+    usage >&2
+    exit 1
+fi
+
+TARGET_DIR="$1"
+QUERY="${2:-}"
+
+if [[ ! -d "$TARGET_DIR" ]]; then
+    echo "Error: target directory not found: $TARGET_DIR" >&2
+    exit 1
+fi
+
+SLUG=$(basename "$TARGET_DIR" | tr -cs '[:alnum:]' '-')
+DB_FILE="${PROJECT_LOCATE_DB_FILE:-$HOME/.cache/locate/${SLUG}-files.txt}"
+
+update_db() {
+    echo "Updating file index for $TARGET_DIR..."
+    mkdir -p "$(dirname "$DB_FILE")"
+    find "$TARGET_DIR" -type f > "$DB_FILE"
+    echo "Index updated: $(wc -l < "$DB_FILE") files"
+}
+
+search_db() {
+    if [[ ! -f "$DB_FILE" ]]; then
+        echo "Index not found. Creating..."
+        update_db
+    fi
+
+    grep -i -- "$QUERY" "$DB_FILE" | sort
+}
+
+if [[ -z "$QUERY" ]]; then
+    update_db
+else
+    search_db
+fi

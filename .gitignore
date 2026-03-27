@@ -32,6 +32,7 @@ paste-cache/
 tasks/
 tmp/
 telemetry/
+usage-data/
 
 # SuperClaude standard files (not customized, root directory only)
 /*.md
@@ -45,6 +46,5 @@ plans/
 .serena/
 tasks/**/.lock
 tasks/**/*.json
-usage-data/facets/*.json
 sessions/*.json
 claudedocs/reviews/*.md

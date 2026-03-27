@@ -21,13 +21,16 @@
 
 非自明なタスクでは、`project-orchestrator` エージェントに相談して最適なスペシャリストを決定すること。
 
-**既知プロジェクトルーティング**（高速パス）:
+**既知プロジェクトルーティング**（公開テンプレート）:
 
-| プロジェクト | ディレクトリ | スペシャリスト |
-|-------------|-------------|---------------|
-| sample-ml-project | `~/projects/ml-platform/` | `ai-engineer`, `data-engineer`, `sre` |
-| sample-model-project | `~/projects/model-research/` | `ai-engineer`, `model-qa-specialist`, `data-engineer` |
-| sample-solidity-project | `~/projects/solidity-bot/` | `solidity-engineer`, `blockchain-security-auditor`, `sre`, `data-engineer` |
+公開リポジトリには machine-specific なプロジェクト名やパスを含めないこと。
+必要な高速パスは untracked な `CLAUDE.local.md` に定義する。
+
+| リポジトリ種別 | スペシャリスト |
+|-------------|---------------|
+| ML / data platform | `ai-engineer`, `data-engineer`, `sre` |
+| Model research / QA | `ai-engineer`, `model-qa-specialist`, `data-engineer` |
+| Solidity / DeFi | `solidity-engineer`, `blockchain-security-auditor`, `sre`, `data-engineer` |
 
 **未知・新規プロジェクト**: オーケストレーターが設定ファイルからプロジェクトドメインを自動検出し、ドメイン-エージェントマトリクス経由でルーティングする。
 

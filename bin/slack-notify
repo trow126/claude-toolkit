@@ -14,13 +14,28 @@
 
 set -euo pipefail
 
-# .envファイルからSLACK_WEBHOOK_URLを読み込み（未設定時）
+# 設定ファイルからSLACK_WEBHOOK_URLを読み込み（未設定時）
+# 優先順:
+# 1. $SLACK_NOTIFY_ENV_FILE
+# 2. ~/.config/slack-notify.env
 if [[ -z "${SLACK_WEBHOOK_URL:-}" ]]; then
-    ENV_FILE="$HOME/.config/slack-notify.env"
-    if [[ -f "$ENV_FILE" ]]; then
-        SLACK_WEBHOOK_URL=$(grep -E "^SLACK_WEBHOOK_URL=" "$ENV_FILE" 2>/dev/null | cut -d= -f2- || true)
-        export SLACK_WEBHOOK_URL
+    ENV_CANDIDATES=()
+
+    if [[ -n "${SLACK_NOTIFY_ENV_FILE:-}" ]]; then
+        ENV_CANDIDATES+=("$SLACK_NOTIFY_ENV_FILE")
     fi
+
+    ENV_CANDIDATES+=("$HOME/.config/slack-notify.env")
+
+    for ENV_FILE in "${ENV_CANDIDATES[@]}"; do
+        if [[ -f "$ENV_FILE" ]]; then
+            SLACK_WEBHOOK_URL=$(grep -E "^SLACK_WEBHOOK_URL=" "$ENV_FILE" 2>/dev/null | cut -d= -f2- || true)
+            if [[ -n "${SLACK_WEBHOOK_URL:-}" ]]; then
+                export SLACK_WEBHOOK_URL
+                break
+            fi
+        fi
+    done
 fi
 
 # デフォルト値
@@ -56,6 +71,7 @@ Examples:
 
 Environment:
   SLACK_WEBHOOK_URL   Slack Incoming Webhook URL (required)
+  SLACK_NOTIFY_ENV_FILE  Optional env file containing SLACK_WEBHOOK_URL
 EOF
 }
 
