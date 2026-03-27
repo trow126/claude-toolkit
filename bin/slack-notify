@@ -20,7 +20,6 @@ set -euo pipefail
 # 2. ~/.config/slack-notify.env
 # 3. $PWD/.env
 # 4. Git repository root の .env
-# 5. $HOME 配下の浅い階層にある .env を探索
 if [[ -z "${SLACK_WEBHOOK_URL:-}" ]]; then
     ENV_CANDIDATES=()
     declare -A SEARCHED_FILES=()
@@ -35,10 +34,6 @@ if [[ -z "${SLACK_WEBHOOK_URL:-}" ]]; then
     if GIT_ROOT=$(git rev-parse --show-toplevel 2>/dev/null); then
         ENV_CANDIDATES+=("$GIT_ROOT/.env")
     fi
-
-    while IFS= read -r found_env; do
-        ENV_CANDIDATES+=("$found_env")
-    done < <(find "$HOME" -maxdepth 2 -type f -name ".env" 2>/dev/null | sort)
 
     for ENV_FILE in "${ENV_CANDIDATES[@]}"; do
         if [[ -f "$ENV_FILE" ]] && [[ -z "${SEARCHED_FILES[$ENV_FILE]:-}" ]]; then
