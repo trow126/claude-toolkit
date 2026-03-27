@@ -19,6 +19,7 @@ ide/
 logs/
 downloads/
 backups/
+backups_pre_restructure/
 agents/
 plugins/
 projects/
