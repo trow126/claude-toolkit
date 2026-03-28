@@ -46,4 +46,4 @@ plans/
 tasks/**/.lock
 tasks/**/*.json
 sessions/*.json
-claudedocs/reviews/*.md
+claudedocs/reviews/
