@@ -6,13 +6,13 @@
 # プロジェクト学習事項と品質ゲート
 @LEARNINGS.md
 
-# セッション初期化
+# セッション初期化 (SessionStart hook で自動実行)
 
-最初のツールコール前に実行:
+SessionStart hook が git 情報を systemMessage で自動注入:
 
-1. `git status` + `git branch` (gitリポ内の場合)
-2. `list_memories` (Serena MCP有効の場合)
-3. プロジェクトの `claudedocs/learnings.md` を確認 (存在する場合)
+1. `git status` + `git branch` → hook が自動実行
+2. `list_memories` (Serena MCP有効の場合) → 手動で実行
+3. プロジェクトの `claudedocs/learnings.md` → 必要に応じて確認
 
 # ツール選択マトリクス
 | タスク種別 | 最適ツール | 代替手段 |
@@ -20,7 +20,7 @@
 | 深い分析 | Sequential MCP | ネイティブ推論 |
 | シンボル操作 | Serena MCP | 手動検索 |
 | ドキュメント参照 | Context7 MCP | Web検索 |
-| 複数ファイル編集 | MultiEdit | 逐次Edit |
+| 複数ファイル編集 | 並列 Edit (パラレルツールコール) | 逐次Edit |
 | インフラ構成 | WebFetch (公式ドキュメント) | 推測禁止 |
 
 # ===================================================
@@ -76,3 +76,11 @@
 **禁止**: Claude CodeネイティブのEdit/Writeツール（日本語ファイル）
 
 Ref: https://github.com/anthropics/claude-code/issues/14405
+
+# ===================================================
+# グローバル安全ガードレール
+# ===================================================
+
+- main/master への force-push 禁止
+- 本番データ/データベースの削除禁止
+- シークレットを含む .env ファイルの変更禁止

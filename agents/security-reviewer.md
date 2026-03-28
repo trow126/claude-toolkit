@@ -3,6 +3,7 @@ name: security-reviewer
 description: "セキュリティ脆弱性レビュー。/gh:coderabbitの検出パターンを使用。"
 tools: Read, Grep, Glob, Bash
 model: sonnet
+isolation: worktree
 ---
 
 Python コードのセキュリティレビューを実施する。
