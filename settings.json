@@ -2,7 +2,8 @@
   "$schema": "https://json.schemastore.org/claude-code-settings.json",
   "env": {
     "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1",
-    "CLAUDE_AUTOCOMPACT_PCT_OVERRIDE": "60"
+    "CLAUDE_AUTOCOMPACT_PCT_OVERRIDE": "60",
+    "CLAUDE_CODE_SUBPROCESS_ENV_SCRUB": "1"
   },
   "attribution": {
     "commit": "Co-Authored-By: Claude <noreply@anthropic.com>",
@@ -54,6 +55,19 @@
       "Bash(git checkout -- .)",
       "Bash(sudo *)",
       "Write(.git/**)",
+      "Read(~/.ssh/**)",
+      "Read(~/.gnupg/**)",
+      "Read(~/.aws/**)",
+      "Read(~/.azure/**)",
+      "Read(~/.kube/**)",
+      "Read(~/.docker/config.json)",
+      "Read(~/.npmrc)",
+      "Read(~/.pypirc)",
+      "Read(~/.gem/credentials)",
+      "Read(~/.git-credentials)",
+      "Read(~/.config/gh/**)",
+      "Edit(~/.bashrc)",
+      "Edit(~/.zshrc)",
       "Bash(rm -rf data)",
       "Bash(rm -rf results)",
       "Bash(rm -rf models)"
@@ -157,5 +171,12 @@
   "language": "japanese",
   "effortLevel": "high",
   "autoMemoryEnabled": false,
-  "autoUpdatesChannel": "stable"
+  "autoUpdatesChannel": "stable",
+  "autoMode": {
+    "environment": [
+      "Personal development environment on WSL2",
+      "Trusted repositories under ~/",
+      "Python ML/data projects and Solidity DeFi projects"
+    ]
+  }
 }
