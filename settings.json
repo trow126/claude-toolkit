@@ -156,6 +156,6 @@
   },
   "language": "japanese",
   "effortLevel": "high",
-  "autoMemoryEnabled": true,
+  "autoMemoryEnabled": false,
   "autoUpdatesChannel": "stable"
 }
