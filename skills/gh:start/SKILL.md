@@ -94,8 +94,12 @@ Agent(
 
 1. **差分確認**: `git status` と `git diff` で変更内容を確認
 2. **lint/format**: プロジェクトのlint/formatツールを実行（存在する場合）
-3. **ステージング**: 変更ファイルを `git add` でステージング
-4. **コミット**: Conventional Commits形式でコミット
+3. **自己検証** (LEARNINGS.mdゲート):
+   - No Fallbackポリシー違反がないか（`except: pass`, catch-all）
+   - 型安全ガード（ゼロ除算、空配列、None処理）
+   - テストが存在する場合、`uv run pytest` が通るか
+4. **ステージング**: 変更ファイルを `git add` でステージング
+5. **コミット**: Conventional Commits形式でコミット
    - コミットメッセージにIssue番号を含める
    - 例: `feat: implement user authentication (#42)`
 

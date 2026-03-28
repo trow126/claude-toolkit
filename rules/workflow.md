@@ -15,9 +15,16 @@
 - タスク完了前に lint/typecheck を実行する
 - 完了とマークする前に操作の証拠を示す: 実際の実行出力またはファイルの最終状態
 
-## 自己改善
-- ユーザーに修正された場合: プロジェクトの `claudedocs/learnings.md` の `## Corrections` セクションに追記する
-- セッション開始時にプロジェクトの learnings を確認する
+## 自己改善（ミス再発防止ループ）
+
+ユーザーが修正した場合（「違う」「そうじゃない」「Xを使って」等）:
+
+1. **記録先の判断**:
+   - 汎用パターン（Ruff、Python慣用句、async、型安全） → `~/.claude/LEARNINGS.md` に追記
+   - プロジェクト固有（API仕様、設計判断） → `claudedocs/learnings.md` に追記
+2. **記録形式**: `- **[修正内容]**: [正しい方法] (理由: [why])` を1行で追記
+3. **auto-memory**: feedback型メモリとして永続化（Serena Memoryセクションの `write_memory` パターンに準拠）
+4. セッション開始時にプロジェクトの learnings を確認する
 
 ## Serena Memory
 - 確認なしで memory 操作を自動実行する
