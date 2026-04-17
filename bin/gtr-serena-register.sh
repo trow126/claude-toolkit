@@ -80,6 +80,9 @@ projects:
 - ${WORKTREE_PATH}
 language_backend: LSP
 tool_timeout: 240
+gui_log_window: false
+web_dashboard: false
+web_dashboard_open_on_launch: false
 EOF
 
 # 4. Create .mcp.json with SERENA_HOME pointing to worktree's .serena/
