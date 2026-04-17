@@ -3,8 +3,7 @@
   "env": {
     "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1",
     "CLAUDE_AUTOCOMPACT_PCT_OVERRIDE": "60",
-    "CLAUDE_CODE_SUBPROCESS_ENV_SCRUB": "1",
-    "CLAUDE_CODE_NO_FLICKER": "1"
+    "CLAUDE_CODE_SUBPROCESS_ENV_SCRUB": "1"
   },
   "attribution": {
     "commit": "Co-Authored-By: Claude <noreply@anthropic.com>",
@@ -28,12 +27,6 @@
     ],
     "deny": [
       "Read(.env)",
-      "Read(.env.*)",
-      "Read(**/.env)",
-      "Read(**/.env.*)",
-      "Read(**/secrets/**)",
-      "Read(**/*credential*)",
-      "Read(**/*secret*)",
       "Bash(rm -rf /)",
       "Bash(rm -rf ~)",
       "Bash(rm -rf /*)",
@@ -80,7 +73,6 @@
       "Bash(uv run python *)"
     ]
   },
-  "model": "opus[1m]",
   "hooks": {
     "SessionStart": [
       {
@@ -170,9 +162,10 @@
     "code-simplifier@claude-plugins-official": true
   },
   "language": "japanese",
+  "tui": "default",
   "effortLevel": "high",
-  "autoMemoryEnabled": false,
   "autoUpdatesChannel": "stable",
+  "autoMemoryEnabled": false,
   "autoMode": {
     "environment": [
       "Personal development environment on WSL2",
