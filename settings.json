@@ -2,8 +2,7 @@
   "$schema": "https://json.schemastore.org/claude-code-settings.json",
   "env": {
     "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1",
-    "CLAUDE_AUTOCOMPACT_PCT_OVERRIDE": "60",
-    "CLAUDE_CODE_SUBPROCESS_ENV_SCRUB": "1"
+    "CLAUDE_AUTOCOMPACT_PCT_OVERRIDE": "60"
   },
   "attribution": {
     "commit": "Co-Authored-By: Claude <noreply@anthropic.com>",
@@ -16,7 +15,24 @@
       "Grep",
       "Edit",
       "Write",
-      "Bash",
+      "Bash(git *)",
+      "Bash(uv run *)",
+      "Bash(gh *)",
+      "Bash(ls *)",
+      "Bash(cat *)",
+      "Bash(grep *)",
+      "Bash(head *)",
+      "Bash(tail *)",
+      "Bash(npm *)",
+      "Bash(pnpm *)",
+      "Bash(bun *)",
+      "Bash(wc *)",
+      "Bash(find *)",
+      "Bash(which *)",
+      "Bash(pwd)",
+      "Bash(echo *)",
+      "Bash(mkdir *)",
+      "Bash(touch *)",
       "mcp__serena",
       "mcp__sequential-thinking",
       "mcp__context7",
@@ -64,7 +80,22 @@
       "Edit(~/.zshrc)",
       "Bash(rm -rf data)",
       "Bash(rm -rf results)",
-      "Bash(rm -rf models)"
+      "Bash(rm -rf models)",
+      "Read(./.env.*)",
+      "Read(**/.env)",
+      "Read(**/.env.*)",
+      "Write(./.env)",
+      "Write(./.env.*)",
+      "Write(**/.env*)",
+      "Edit(./.env)",
+      "Edit(./.env.*)",
+      "Edit(**/.env*)",
+      "Bash(curl *)",
+      "Bash(wget *)",
+      "Bash(ssh *)",
+      "Bash(scp *)",
+      "Bash(nc *)",
+      "Bash(ncat *)"
     ],
     "ask": [
       "Bash(rm *)",
@@ -158,13 +189,9 @@
     "command": "~/.claude/statusline.sh",
     "padding": 0
   },
-  "enabledPlugins": {
-    "code-simplifier@claude-plugins-official": true
-  },
   "language": "japanese",
-  "tui": "default",
-  "effortLevel": "high",
   "autoUpdatesChannel": "stable",
+  "tui": "default",
   "autoMemoryEnabled": false,
   "autoMode": {
     "environment": [
