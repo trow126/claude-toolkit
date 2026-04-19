@@ -13,36 +13,39 @@
   },
   "permissions": {
     "allow": [
-      "Read",
-      "Glob",
-      "Grep",
-      "Edit",
-      "Write",
-      "Bash(git *)",
-      "Bash(uv run *)",
-      "Bash(gh *)",
-      "Bash(ls *)",
+      "Agent",
+      "Bash(bun *)",
       "Bash(cat *)",
+      "Bash(echo *)",
+      "Bash(file *)",
+      "Bash(find *)",
+      "Bash(gh *)",
+      "Bash(git *)",
       "Bash(grep *)",
       "Bash(head *)",
-      "Bash(tail *)",
+      "Bash(ls *)",
+      "Bash(mkdir *)",
       "Bash(npm *)",
       "Bash(pnpm *)",
-      "Bash(bun *)",
-      "Bash(wc *)",
-      "Bash(find *)",
-      "Bash(which *)",
       "Bash(pwd)",
-      "Bash(echo *)",
-      "Bash(mkdir *)",
+      "Bash(stat *)",
+      "Bash(tail *)",
+      "Bash(test *)",
       "Bash(touch *)",
-      "mcp__serena",
-      "mcp__sequential-thinking",
-      "mcp__context7",
-      "WebSearch",
+      "Bash(uv run *)",
+      "Bash(wc *)",
+      "Bash(which *)",
+      "Edit",
+      "Glob",
+      "Grep",
+      "Read",
+      "SlashCommand(/gh:usage)",
       "WebFetch",
-      "Agent",
-      "SlashCommand(/gh:usage)"
+      "WebSearch",
+      "Write",
+      "mcp__context7",
+      "mcp__sequential-thinking",
+      "mcp__serena"
     ],
     "deny": [
       "Bash(> /dev/sd*)",
@@ -131,8 +134,7 @@
           {
             "type": "command",
             "command": "~/.claude/hooks/pre-bash-validate-hook.sh",
-            "timeout": 5,
-            "if": "Bash(rm *)|Bash(dd *)|Bash(mkfs *)|Bash(chmod *)|Bash(chown *)"
+            "timeout": 5
           }
         ]
       }
@@ -221,14 +223,8 @@
   },
   "skipAutoPermissionPrompt": true,
   "sandbox": {
-    "enabled": true,
-    "failIfUnavailable": false,
-    "autoAllowBashIfSandboxed": true,
-    "excludedCommands": [
-      "docker *",
-      "gh *",
-      "git *"
-    ],
-    "allowUnsandboxedCommands": true
+    "enabled": false,
+    "allowUnsandboxedCommands": true,
+    "failIfUnavailable": false
   }
 }
