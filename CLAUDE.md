@@ -63,19 +63,30 @@ SessionStart hook が git 情報を systemMessage で自動注入:
 - 肯定、軟化、お世辞なし - 直接的かつ無加工
 
 # ===================================================
-# UTF-8 Bug Workaround (Claude Code v2.0.70+)
+# UTF-8 Bug Workaround (履歴的注意事項)
 # ===================================================
 
-**CRITICAL**: Claude Code v2.0.70以降にUTF-8マルチバイト文字処理のバグあり。
-日本語を含むファイル編集時は以下を使用：
+**状態**: Issue #14405 は 2026-04-18 に CLOSED。Claude Code 最新版では修正済み。
 
-1. **Serena MCP** (推奨): `replace_content` / `replace_symbol_body`
-2. **Bash**: `sed` コマンド
-3. **差分出力**: Edit/Write使わず unified diff 形式で出力
+**旧バグ**: v2.0.70 以降の一部バージョンで、日本語を含む文字列スライスが char boundary 違反で panic。
 
-**禁止**: Claude CodeネイティブのEdit/Writeツール（日本語ファイル）
+**現在の運用**:
+- 最新版 (v2.1.x 系) では Edit/Write ツールを日本語ファイルにも使用可
+- 万が一 panic が再発した場合のフォールバック: Serena MCP `replace_content` / `replace_symbol_body` or `sed`
 
-Ref: https://github.com/anthropics/claude-code/issues/14405
+Ref: https://github.com/anthropics/claude-code/issues/14405 (CLOSED 2026-04-18)
+
+# ===================================================
+# 起動運用
+# ===================================================
+
+**原則**: `claude` は常にプロジェクトディレクトリから起動する。`/home/trow126` 直下からの起動は禁止。
+
+**理由**: home 配下には `keiba-workspace/` (44G), `keibaAI-v3/` (36G), `ChaoScale/` (13G) など 100GB+ のプロジェクトが並存し、Claude Code は cwd 全体をスキャンする。`.claudeignore` は起動時スキャンに効かないことが 2026-04-19 の調査で確認済み（lsof で検証）。
+
+**症状（home 起動時）**: RSS 15-17GB、CPU 200s+、3 分以上のハング。
+
+**推奨**: 作業対象のプロジェクトに `cd` してから `claude` を起動する。
 
 # ===================================================
 # グローバル安全ガードレール
@@ -84,3 +95,4 @@ Ref: https://github.com/anthropics/claude-code/issues/14405
 - main/master への force-push 禁止
 - 本番データ/データベースの削除禁止
 - シークレットを含む .env ファイルの変更禁止
+- `claude` を `/home/trow126` 直下から起動しない（上記「起動運用」参照）
