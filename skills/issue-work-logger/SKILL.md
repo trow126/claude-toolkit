@@ -1,16 +1,10 @@
 ---
 name: issue-work-logger
-description: "Automatically log work progress for GitHub Issues to claudedocs/work/"
-category: automation
-complexity: medium
+description: "Automatically log work progress for GitHub Issues to claudedocs/work/. Activates on /gh:issue work, TodoWrite state changes, and session start/end."
 allowed-tools:
   - Write
   - Read
   - Bash
-triggers:
-  - "/gh:issue work"
-  - TodoWrite state changes
-  - Session start/end
 ---
 
 # issue-work-logger - Issue Work Progress Logger
