@@ -2,7 +2,10 @@
   "$schema": "https://json.schemastore.org/claude-code-settings.json",
   "env": {
     "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1",
-    "CLAUDE_AUTOCOMPACT_PCT_OVERRIDE": "60"
+    "CLAUDE_AUTOCOMPACT_PCT_OVERRIDE": "60",
+    "CLAUDE_CODE_DISABLE_AUTO_MEMORY": "1",
+    "CLAUDE_CODE_SUBPROCESS_ENV_SCRUB": "1",
+    "ENABLE_TOOL_SEARCH": "true"
   },
   "attribution": {
     "commit": "Co-Authored-By: Claude <noreply@anthropic.com>",
@@ -42,67 +45,72 @@
       "SlashCommand(/gh:usage)"
     ],
     "deny": [
-      "Read(.env)",
-      "Bash(rm -rf /)",
-      "Bash(rm -rf ~)",
-      "Bash(rm -rf /*)",
-      "Bash(rm -rf .)",
-      "Bash(rm -rf data *)",
-      "Bash(rm -rf results *)",
-      "Bash(rm -rf models *)",
       "Bash(> /dev/sd*)",
-      "Bash(dd if=*of=/dev/sd*)",
-      "Bash(uv run python scripts/scraping/*)",
-      "Bash(uv run python scripts/voting/*)",
       "Bash(bash *)",
-      "Bash(cat .env*)",
       "Bash(cat **/.env*)",
+      "Bash(cat .env*)",
+      "Bash(curl *)",
+      "Bash(dd if=*of=/dev/sd*)",
+      "Bash(git checkout -- .)",
+      "Bash(git clean -f *)",
+      "Bash(git clean -fd *)",
       "Bash(git push --force *)",
       "Bash(git push -f *)",
       "Bash(git reset --hard *)",
-      "Bash(git clean -f *)",
-      "Bash(git clean -fd *)",
-      "Bash(git checkout -- .)",
+      "Bash(nc *)",
+      "Bash(ncat *)",
+      "Bash(rm -rf .)",
+      "Bash(rm -rf /)",
+      "Bash(rm -rf /*)",
+      "Bash(rm -rf data*)",
+      "Bash(rm -rf models*)",
+      "Bash(rm -rf results*)",
+      "Bash(rm -rf ~)",
+      "Bash(scp *)",
+      "Bash(ssh *)",
       "Bash(sudo *)",
-      "Write(.git/**)",
-      "Read(~/.ssh/**)",
-      "Read(~/.gnupg/**)",
-      "Read(~/.aws/**)",
-      "Read(~/.azure/**)",
-      "Read(~/.kube/**)",
-      "Read(~/.docker/config.json)",
-      "Read(~/.npmrc)",
-      "Read(~/.pypirc)",
-      "Read(~/.gem/credentials)",
-      "Read(~/.git-credentials)",
-      "Read(~/.config/gh/**)",
-      "Edit(~/.bashrc)",
-      "Edit(~/.zshrc)",
-      "Bash(rm -rf data)",
-      "Bash(rm -rf results)",
-      "Bash(rm -rf models)",
-      "Read(./.env.*)",
-      "Read(**/.env)",
-      "Read(**/.env.*)",
-      "Write(./.env)",
-      "Write(./.env.*)",
-      "Write(**/.env*)",
+      "Bash(uv run python scripts/scraping/*)",
+      "Bash(uv run python scripts/voting/*)",
+      "Bash(wget *)",
+      "Edit(**/.env*)",
       "Edit(./.env)",
       "Edit(./.env.*)",
-      "Edit(**/.env*)",
-      "Bash(curl *)",
-      "Bash(wget *)",
-      "Bash(ssh *)",
-      "Bash(scp *)",
-      "Bash(nc *)",
-      "Bash(ncat *)"
+      "Edit(~/.bashrc)",
+      "Edit(~/.zshrc)",
+      "Read(**/*.p12)",
+      "Read(**/*.pem)",
+      "Read(**/*.pfx)",
+      "Read(**/.env)",
+      "Read(**/.env.*)",
+      "Read(**/credentials.json)",
+      "Read(**/id_ed25519)",
+      "Read(**/id_rsa)",
+      "Read(**/service-account*.json)",
+      "Read(./.env.*)",
+      "Read(.env)",
+      "Read(~/.aws/**)",
+      "Read(~/.azure/**)",
+      "Read(~/.config/gh/**)",
+      "Read(~/.docker/config.json)",
+      "Read(~/.gem/credentials)",
+      "Read(~/.git-credentials)",
+      "Read(~/.gnupg/**)",
+      "Read(~/.kube/**)",
+      "Read(~/.npmrc)",
+      "Read(~/.pypirc)",
+      "Read(~/.ssh/**)",
+      "Write(**/.env*)",
+      "Write(./.env)",
+      "Write(./.env.*)",
+      "Write(.git/**)"
     ],
     "ask": [
       "Bash(rm *)",
       "Bash(chmod *)",
       "Bash(chown *)",
       "Bash(uv run python *)"
-    ]
+    ],
+    "defaultMode": "auto"
   },
   "hooks": {
     "SessionStart": [
@@ -123,7 +131,8 @@
           {
             "type": "command",
             "command": "~/.claude/hooks/pre-bash-validate-hook.sh",
-            "timeout": 5
+            "timeout": 5,
+            "if": "Bash(rm *)|Bash(dd *)|Bash(mkfs *)|Bash(chmod *)|Bash(chown *)"
           }
         ]
       }
@@ -182,6 +191,17 @@
           }
         ]
       }
+    ],
+    "ConfigChange": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/config-change-hook.sh",
+            "timeout": 5
+          }
+        ]
+      }
     ]
   },
   "statusLine": {
@@ -192,12 +212,23 @@
   "language": "japanese",
   "autoUpdatesChannel": "stable",
   "tui": "default",
-  "autoMemoryEnabled": false,
   "autoMode": {
     "environment": [
       "Personal development environment on WSL2",
       "Trusted repositories under ~/",
       "Python ML/data projects and Solidity DeFi projects"
     ]
+  },
+  "skipAutoPermissionPrompt": true,
+  "sandbox": {
+    "enabled": true,
+    "failIfUnavailable": false,
+    "autoAllowBashIfSandboxed": true,
+    "excludedCommands": [
+      "docker *",
+      "gh *",
+      "git *"
+    ],
+    "allowUnsandboxedCommands": true
   }
 }
