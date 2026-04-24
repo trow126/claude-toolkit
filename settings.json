@@ -270,5 +270,7 @@
       "Routine work is local Python ML/data projects and Solidity DeFi projects inside the session repository",
       "Do not treat all repositories under ~/ as automatically trusted; moving into another repository or home-level config is scope escalation unless the user explicitly asks"
     ]
-  }
+  },
+  "theme": "light-ansi",
+  "editorMode": "vim"
 }
