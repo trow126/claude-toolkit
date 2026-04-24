@@ -80,9 +80,9 @@ Ref: https://github.com/anthropics/claude-code/issues/14405 (CLOSED 2026-04-18)
 # 起動運用
 # ===================================================
 
-**原則**: `claude` は常にプロジェクトディレクトリから起動する。`/home/trow126` 直下からの起動は禁止。
+**原則**: `claude` は常にプロジェクトディレクトリから起動する。`$HOME` 直下からの起動は禁止。
 
-**理由**: home 配下には `keiba-workspace/` (44G), `keibaAI-v3/` (36G), `ChaoScale/` (13G) など 100GB+ のプロジェクトが並存し、Claude Code は cwd 全体をスキャンする。`.claudeignore` は起動時スキャンに効かないことが 2026-04-19 の調査で確認済み（lsof で検証）。
+**理由**: `$HOME` 配下には大規模プロジェクトが並存し（machine-specific なリポジトリ詳細は untracked な `CLAUDE.local.md` 参照）、Claude Code は cwd 全体をスキャンする。`.claudeignore` は起動時スキャンに効かないことが 2026-04-19 の調査で確認済み（lsof で検証）。
 
 **症状（home 起動時）**: RSS 15-17GB、CPU 200s+、3 分以上のハング。
 
@@ -95,4 +95,4 @@ Ref: https://github.com/anthropics/claude-code/issues/14405 (CLOSED 2026-04-18)
 - main/master への force-push 禁止
 - 本番データ/データベースの削除禁止
 - シークレットを含む .env ファイルの変更禁止
-- `claude` を `/home/trow126` 直下から起動しない（上記「起動運用」参照）
+- `claude` を `$HOME` 直下から起動しない（上記「起動運用」参照）
