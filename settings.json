@@ -136,8 +136,10 @@
       "Bash(rm *)",
       "Bash(chmod *)",
       "Bash(chown *)",
+      "Bash(git push *)",
       "Bash(uv run python *)"
     ],
+    "disableBypassPermissionsMode": "disable",
     "defaultMode": "auto"
   },
   "hooks": {
@@ -163,7 +165,18 @@
         ]
       }
     ],
-    "PreToolUse": [],
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/pre-bash-validate-hook.sh",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
     "Notification": [
       {
         "hooks": [
@@ -237,24 +250,25 @@
     "padding": 0
   },
   "language": "japanese",
-  "autoUpdatesChannel": "stable",
-  "tui": "default",
-  "autoMode": {
-    "environment": [
-      "Personal development environment on WSL2",
-      "Trusted repositories under ~/",
-      "Python ML/data projects and Solidity DeFi projects"
-    ]
-  },
-  "skipAutoPermissionPrompt": true,
   "sandbox": {
-    "enabled": false,
-    "allowUnsandboxedCommands": true,
+    "enabled": true,
     "failIfUnavailable": false,
+    "allowUnsandboxedCommands": false,
     "filesystem": {
       "allowRead": [
         "~/.config/gh"
       ]
     }
+  },
+  "autoUpdatesChannel": "latest",
+  "tui": "default",
+  "skipAutoPermissionPrompt": false,
+  "autoMode": {
+    "environment": [
+      "Personal development environment on WSL2",
+      "Trusted source control is limited to the git repository where the session starts and its configured remotes",
+      "Routine work is local Python ML/data projects and Solidity DeFi projects inside the session repository",
+      "Do not treat all repositories under ~/ as automatically trusted; moving into another repository or home-level config is scope escalation unless the user explicitly asks"
+    ]
   }
 }
