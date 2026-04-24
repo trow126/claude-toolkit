@@ -105,7 +105,32 @@
       "Write(**/.env*)",
       "Write(./.env)",
       "Write(./.env.*)",
-      "Write(.git/**)"
+      "Write(.git/**)",
+      "Bash(head **/.env*)",
+      "Bash(head .env*)",
+      "Bash(tail **/.env*)",
+      "Bash(tail .env*)",
+      "Bash(less **/.env*)",
+      "Bash(less .env*)",
+      "Bash(more **/.env*)",
+      "Bash(more .env*)",
+      "Bash(grep * **/.env*)",
+      "Bash(grep * .env*)",
+      "Bash(awk * **/.env*)",
+      "Bash(awk * .env*)",
+      "Bash(sed * **/.env*)",
+      "Bash(sed * .env*)",
+      "Bash(python **/.env*)",
+      "Bash(python3 **/.env*)",
+      "Bash(node **/.env*)",
+      "Bash(cp **/.env*)",
+      "Bash(mv **/.env*)",
+      "Bash(source **/.env*)",
+      "Bash(source .env*)",
+      "Bash(. **/.env*)",
+      "Bash(. .env*)",
+      "Bash(mkfs *)",
+      "Bash(mkfs.* *)"
     ],
     "ask": [
       "Bash(rm *)",
@@ -127,18 +152,18 @@
         ]
       }
     ],
-    "PreToolUse": [
+    "UserPromptSubmit": [
       {
-        "matcher": "Bash",
         "hooks": [
           {
             "type": "command",
-            "command": "~/.claude/hooks/pre-bash-validate-hook.sh",
+            "command": "~/.claude/hooks/user-prompt-submit-hook.sh",
             "timeout": 5
           }
         ]
       }
     ],
+    "PreToolUse": [],
     "Notification": [
       {
         "hooks": [
@@ -225,6 +250,11 @@
   "sandbox": {
     "enabled": false,
     "allowUnsandboxedCommands": true,
-    "failIfUnavailable": false
+    "failIfUnavailable": false,
+    "filesystem": {
+      "allowRead": [
+        "~/.config/gh"
+      ]
+    }
   }
 }

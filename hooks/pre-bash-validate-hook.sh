@@ -3,11 +3,11 @@
 # Blocks dangerous patterns by exiting with code 2 + stderr message
 # Only checks tool_input.command from Claude's Bash tool calls
 
-set -euo pipefail
+set -uo pipefail
 
 INPUT=$(cat)
 
-COMMAND=$(echo "$INPUT" | jq -r '.tool_input.command // empty' 2>/dev/null)
+COMMAND=$(echo "$INPUT" | jq -r '.tool_input.command // empty' 2>/dev/null) || COMMAND=""
 
 if [ -z "$COMMAND" ]; then
     exit 0
