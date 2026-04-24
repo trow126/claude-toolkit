@@ -7,6 +7,7 @@
 settings.local.json
 CLAUDE.local.md
 .superclaude-metadata.json
+.gitconfig
 
 # Session and temporary data
 cache/
@@ -32,6 +33,8 @@ tasks/
 tmp/
 telemetry/
 usage-data/
+settings.json.bak.*
+hooks/*.original
 
 # SuperClaude standard files (not customized, root directory only)
 /*.md
