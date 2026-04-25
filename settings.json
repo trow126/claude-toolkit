@@ -140,7 +140,7 @@
       "Bash(uv run python *)"
     ],
     "disableBypassPermissionsMode": "disable",
-    "defaultMode": "auto"
+    "defaultMode": "acceptEdits"
   },
   "hooks": {
     "SessionStart": [
@@ -251,9 +251,9 @@
   },
   "language": "japanese",
   "sandbox": {
-    "enabled": true,
+    "enabled": false,
     "failIfUnavailable": false,
-    "allowUnsandboxedCommands": false,
+    "allowUnsandboxedCommands": true,
     "filesystem": {
       "allowRead": [
         "~/.config/gh"
@@ -263,6 +263,7 @@
   "autoUpdatesChannel": "latest",
   "tui": "default",
   "skipAutoPermissionPrompt": false,
+  "disableAutoMode": "disable",
   "autoMode": {
     "environment": [
       "Personal development environment on WSL2",
