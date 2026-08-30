@@ -71,7 +71,7 @@ The columns map directly to the requirement’s eleven axes: purpose; needed; bu
 
 | id | before → after | tags | purpose | needed | built-in / overlap | context | false positive / failure | verification | low-cost / deterministic | disposition |
 |---|---|---|---|---|---|---|---|---|---|---|
-| claude-skill:branch-cleanup | `claude/skills/branch-cleanup/SKILL.md` → `claude/skills/branch-cleanup/SKILL.md` | — | branch cleanup workflow | medium | none / none | manual-only | wrong branch deletion / medium | skill schema + permission ask | yes / git checks | keep |
+| claude-skill:branch-cleanup | `claude/skills/branch-cleanup/SKILL.md` → `shared/skills/branch-cleanup/SKILL.md` | — | branch cleanup workflow | medium | none / none | manual-only | wrong branch deletion / medium | skill schema + permission ask | yes / git checks | keep |
 | claude-skill:break-consensus | `-` → `shared/skills/claude-code/break-consensus/SKILL.md` | innovation | manual innovation exploration | required | none / none | manual-only | inappropriate use / low | manual-only flag + novelty audit | partial / no | add |
 | claude-skill:config-audit | `claude/skills/config-audit/SKILL.md` → `shared/skills/claude-code/config-audit/SKILL.md` | review | configuration audit | medium | none / validate-layout overlaps partially | manual-only | false warning / low | validator + skill schema | yes / validator primary | keep |
 | claude-skill:deep-research-mode | `claude/skills/deep-research-mode/SKILL.md` → `-` (archive `docs/archive/skills/deep-research-mode/SKILL.md`) | — | generic deep research mode | low | built-in exploration / model-routing | manual-only | overresearch / low | archive presence | yes / no | archive |
