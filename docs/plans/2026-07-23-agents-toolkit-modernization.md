@@ -88,10 +88,10 @@ codex_agents_md_lines: 45
 combined_always_on_total: 8090
 custom_agents: 10
 codex_custom_agents: 4
-claude_skills: 18
+claude_skills: 21
 codex_skills: 21
-active_skill_entrypoints: 31
-active_skill_entrypoint_bytes: 72766
+active_skill_entrypoints: 34
+active_skill_entrypoint_bytes: 80740
 active_skill_entrypoint_max_lines: 121
 active_skill_entrypoint_over_150_lines: 0
 active_skill_entrypoint_over_8192_bytes: 0
