@@ -13,6 +13,22 @@
 
 ## 導入
 
+### Claude Code の install / update
+
+Claude Code は native installer 版を正本とする。`curl -fsSL https://claude.ai/install.sh | bash` で導入される launcher は `~/.local/bin/claude` にあり、background で auto-update する。すぐに更新するときは `claude update`、最後の更新試行の確認は `claude doctor </dev/null` を使う。
+
+npm global 版からの移行は、実行中の Claude session 内ではなく通常の shell で次の順に行う。`~/.npm-global/bin` が `~/.local/bin` より PATH の前にあるため、native 版を shadow しないよう npm package の削除が必要になる。
+
+```bash
+curl -fsSL https://claude.ai/install.sh | bash
+npm uninstall -g @anthropic-ai/claude-code
+hash -r
+command -v claude                 # ~/.local/bin/claude
+claude --version
+claude doctor </dev/null          # auto-update warning がないこと
+scripts/check-runtime.sh
+```
+
 ### 前提
 
 - Claude Code 2.1.219 stable 以上

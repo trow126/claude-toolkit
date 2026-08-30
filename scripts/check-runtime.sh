@@ -14,6 +14,7 @@
 #      根拠: https://raw.githubusercontent.com/anthropics/claude-code/main/CHANGELOG.md の 2.1.219 "Added Claude Opus 5 (`claude-opus-5`)"。
 #      それ以前のversionは当該keyを認識しないため、本 script + bootstrap も defense-in-depth
 #      の version gate として維持する。
+#   4. claude の解決先を表示し、native installer 経路かを NOTE で診断すること
 #
 # 呼び出し:
 #   standalone:                scripts/check-runtime.sh           (claude 欠落もエラー)
@@ -123,4 +124,15 @@ if [[ "$major" != "$TESTED_MAJOR" ]]; then
 fi
 
 echo "OK: Claude Code $VER (>= $MINIMUM, stable)"
+
+CLAUDE_PATH="$(command -v claude)"
+CLAUDE_REAL_PATH="$(normalize_path "$CLAUDE_PATH")"
+NATIVE_LAUNCHER="$HOME/.local/bin/claude"
+NATIVE_SHARE="$(normalize_path "$HOME/.local/share/claude")"
+if [[ "$CLAUDE_PATH" == "$NATIVE_LAUNCHER" || "$CLAUDE_REAL_PATH" == "$NATIVE_SHARE/"* ]]; then
+  echo "NOTE: claude は native installer の launcher ($CLAUDE_PATH) から解決されています。"
+else
+  echo "NOTE: claude は native installer 以外の経路 ($CLAUDE_PATH) から解決されています。claude/README.md「Claude Code の install / update」の手順で native installer へ移行してください"
+fi
+
 echo "NOTE: 初回起動時に settings の startup warning が 0 件であることを目視確認してください(unmatched permission rule / unknown key の検出)"

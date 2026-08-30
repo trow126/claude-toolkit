@@ -21,12 +21,14 @@ ng() {
 # claude stub: CLAUDE_STUB_VERSION の内容を version 行として出力する
 TEST_HOME="$SANDBOX/home"
 STUBBIN="$SANDBOX/stubbin"
-mkdir -p "$TEST_HOME" "$STUBBIN"
+NATIVEBIN="$TEST_HOME/.local/bin"
+mkdir -p "$TEST_HOME" "$STUBBIN" "$NATIVEBIN"
 cat > "$STUBBIN/claude" <<'STUB'
 #!/usr/bin/env bash
 printf '%s (Claude Code)\n' "${CLAUDE_STUB_VERSION:?}"
 STUB
 chmod +x "$STUBBIN/claude"
+ln -s "$STUBBIN/claude" "$NATIVEBIN/claude"
 
 # claude 欠落環境: doctor が必要とする外部コマンドだけを見せる
 MINBIN="$SANDBOX/minbin"
@@ -70,11 +72,28 @@ else
   ng "future major (rc=$rc, note=$(grep -c '検証済み major' <<< "$out" || true))"
 fi
 
-# ---- 2. claude 欠落(H-017: soft-missing は bootstrap 経路専用) ----
+# ---- 2. install 経路の診断は NOTE のみ ----
+out="$(run_doctor "2.1.230" 2>&1)" && rc=0 || rc=$?
+if [[ "$rc" -eq 0 ]] && grep -Fq "NOTE: claude は native installer 以外の経路 ($STUBBIN/claude) から解決されています。" <<< "$out"; then
+  ok "non-native 経路は exit 0 + 移行 NOTE"
+else
+  ng "non-native 経路の診断 (rc=$rc, note=$(grep -c 'native installer 以外の経路' <<< "$out" || true))"
+fi
+
+rc=0
+out="$(env -u XDG_CONFIG_HOME -u XDG_STATE_HOME -u XDG_DATA_HOME -u XDG_CACHE_HOME \
+  HOME="$TEST_HOME" PATH="$NATIVEBIN:$PATH" CLAUDE_STUB_VERSION="2.1.230" "$DOCTOR" 2>&1)" || rc=$?
+if [[ "$rc" -eq 0 ]] && grep -Fq "NOTE: claude は native installer の launcher ($NATIVEBIN/claude) から解決されています。" <<< "$out"; then
+  ok "native launcher 経路は exit 0 + native NOTE"
+else
+  ng "native launcher 経路の診断 (rc=$rc, note=$(grep -c 'native installer の launcher' <<< "$out" || true))"
+fi
+
+# ---- 3. claude 欠落(H-017: soft-missing は bootstrap 経路専用) ----
 expect_rc "claude 欠落は既定で reject" 1 "-"
 expect_rc "claude 欠落 + --soft-missing は NOTE 続行" 0 "-" --soft-missing
 
-# ---- 3. custom XDG は fail-closed(H-013) ----
+# ---- 4. custom XDG は fail-closed(H-013) ----
 rc=0
 env HOME="$TEST_HOME" XDG_CONFIG_HOME="$SANDBOX/custom-config" PATH="$STUBBIN:$PATH" CLAUDE_STUB_VERSION="2.1.219" \
   "$DOCTOR" >/dev/null 2>&1 || rc=$?
@@ -106,7 +125,7 @@ env HOME="$TEST_HOME" XDG_CONFIG_HOME="relative/config" PATH="$STUBBIN:$PATH" CL
 if [[ "$rc" -eq 1 ]]; then ok "relative XDG は reject"; else ng "relative XDG が exit $rc"; fi
 
 
-# ---- 4. project/local security settings are fail-closed(C-02) ----
+# ---- 5. project/local security settings are fail-closed(C-02) ----
 PROJECT_ROOT="$SANDBOX/project"
 mkdir -p "$PROJECT_ROOT/.git" "$PROJECT_ROOT/.claude"
 cat > "$PROJECT_ROOT/.claude/settings.json" <<'JSON'
@@ -127,7 +146,7 @@ env -u XDG_CONFIG_HOME -u XDG_STATE_HOME -u XDG_DATA_HOME -u XDG_CACHE_HOME \
   CLAUDE_PROJECT_DIR="$PROJECT_ROOT" "$DOCTOR" >/dev/null 2>&1 || rc=$?
 if [[ "$rc" -eq 1 ]]; then ok "unsafe project settings are rejected by doctor"; else ng "unsafe project settings exit $rc"; fi
 
-# ---- 5. 例外経路/未知 option は reject ----
+# ---- 6. 例外経路/未知 option は reject ----
 expect_rc "廃止した --accept-custom-xdg は reject" 1 "2.1.219" --accept-custom-xdg
 expect_rc "未知 option は reject" 1 "2.1.219" --bogus
 
