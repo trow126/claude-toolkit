@@ -256,6 +256,16 @@
             "timeout": 30
           }
         ]
+      },
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/post-edit-lint-hook.sh",
+            "timeout": 10
+          }
+        ]
       }
     ],
     "PreToolUse": [

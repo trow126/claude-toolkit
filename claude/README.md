@@ -8,7 +8,7 @@
 - `settings.json`: model、effort、status line、plugin、`autoMemoryEnabled: false` などの**非 security** user preference
 - `managed-settings.json`: owner 選択の `bypassPermissions`、sandbox、credentials、hooks、top-level `disableAutoMode`、`requiredMinimumVersion: 2.1.219`
 - `bin/`: deterministic helper。`project-policy-gate` は project/local security override を拒否する
-- `hooks/`: managed policy からのみ登録される lifecycle / PreToolUse hook
+- `hooks/`: managed policy からのみ登録される lifecycle / tool hook
 - `rules/`, `agents/`, `skills/`: path-scoped knowledge、specialist、progressive-disclosure skill
 
 ## 導入
@@ -46,6 +46,10 @@ Claude Code の scope は managed > CLI > project local > project > user。toolk
 - `BASH_ENV`, `PATH`, `LD_PRELOAD`, `PYTHONPATH`, `NODE_OPTIONS`, `XDG_*` 等の shell/config redirect env
 
 `scripts/check-runtime.sh` が起動前に、`project-policy-gate` が各 Bash の PreToolUse 前に同じ契約を検査する。unsafe file、invalid JSON、symlinked settings は exit 2 / non-zero で block する。project 固有の security 例外を追加せず、必要な変更は managed policy source をレビューして再導入する。
+
+## Hook の失敗方針
+
+検証 gate の `pre-bash-validate-hook.sh` と `config-change-hook.sh` は、入力・依存・内部処理の異常も exit 2 とする fail-closed。lint 型フィードバックの `post-edit-lint-hook.sh` は確定した違反だけを exit 2 とし、内部エラーは無出力の exit 0 にする。フィードバックは同じ turn の編集 agent にだけ返るため、linter の不具合で作業を止めない。
 
 custom XDG base directory は非対応。`XDG_CONFIG_HOME` 等が `$HOME` 配下の標準位置と同値でなければ doctor が拒否する。
 
