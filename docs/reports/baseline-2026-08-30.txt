@@ -2,12 +2,12 @@
 #
 # 対象 commit: 60204e4
 # 実行環境: Linux, Claude Code CLI 2.1.251, Codex CLI 0.151.0, python3
-# 実行コマンド: scripts/measure-metrics.sh / python3 scripts/measure-hook-injection.py /home/trow126/agents-toolkit / scripts/validate-layout.sh
+# 実行コマンド: scripts/measure-metrics.sh / python3 scripts/measure-hook-injection.py $HOME/agents-toolkit / scripts/validate-layout.sh
 # 監査実行日時: 2026-08-30 (Asia/Tokyo)
 
 ## scripts/measure-metrics.sh
 
-== metrics: /home/trow126/agents-toolkit ==
+== metrics: $HOME/agents-toolkit ==
 claude_md_bytes: 3119
 claude_md_lines: 40
 claude_always_rules_bytes: 0
@@ -65,7 +65,7 @@ unconditional_delegation_gh_start: 0
 always_on_learnings_paths: 0
 duplicated_principles_greppable: 0 (of 3 signatures; manual-assessed pairs resolved by 2026-07-26 leaf-rule dedup)
 
-## python3 scripts/measure-hook-injection.py /home/trow126/agents-toolkit
+## python3 scripts/measure-hook-injection.py $HOME/agents-toolkit
 
 session_start_system_message_typical_bytes: 102
 session_start_system_message_max_bytes: 512

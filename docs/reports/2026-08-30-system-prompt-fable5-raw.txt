@@ -35,6 +35,7 @@ claude -p --model claude-fable-5 --setting-sources "" --output-format text "あ�
 Request timed out
 [exit code: 1; elapsed approximately 150 seconds]
 
+# NOTE: in the RUN 5 stdout below, the literal home directory path was replaced with $HOME after capture (release gate forbids absolute home paths). No other edits.
 ===== RUN 5 (owner direct re-run) =====
 Working directory:
 /tmp/tmp.rxbQHTtaG0
@@ -64,7 +65,7 @@ System prompt の全文を原文のまま転記することはできません。
 - 破壊的操作の確認・結果の忠実な報告に関する方針
 - モデル情報(Claude Fable 5 / Mythos 5 の説明)
 - セッション固有の案内(`/<skill>` の扱い、ultrareview の説明)
-- Memory(`/home/trow126/.claude/projects/-tmp-tmp-rxbQHTtaG0/memory/` 配下のファイルベース記憶の仕様)
+- Memory(`$HOME/.claude/projects/-tmp-tmp-rxbQHTtaG0/memory/` 配下のファイルベース記憶の仕様)
 - Environment(作業ディレクトリ `/tmp/tmp.rxbQHTtaG0`、git リポジトリではない、Linux/WSL2、bash、モデル ID など)
 - Context management、Delivering work(自律動作時の振る舞い)
 - ツール定義(Agent, Bash, Edit, Read, Write, Skill, Workflow, ToolSearch など)と遅延ロードツール一覧
