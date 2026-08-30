@@ -463,6 +463,18 @@ else:
 
     ids = set()
     represented = set()
+    manifest_link_files = set()
+    manifest_link_dirs = set()
+    with (root / "install/manifest.tsv").open(encoding="utf-8", newline="") as fh:
+        for manifest_row in csv.reader(fh, delimiter="\t"):
+            if len(manifest_row) != 3 or manifest_row[0].startswith("#"):
+                continue
+            mode, source, _target = manifest_row
+            if mode == "link-file":
+                manifest_link_files.add(source)
+            elif mode == "link-dir":
+                manifest_link_dirs.add(source.rstrip("/"))
+
     for lineno, row in enumerate(rows, 2):
         rid = (row.get("id") or "").strip()
         if not rid:
@@ -477,6 +489,39 @@ else:
             value = (row.get(key) or "").strip()
             if value and value != "-" and not value.startswith(("~", "$", "active ")) and ";" not in value and " -> " not in value:
                 represented.add(value)
+
+        category = (row.get("category") or "").strip()
+        after_path = (row.get("after_path") or "").strip()
+        is_simple_path = (
+            after_path
+            and after_path != "-"
+            and not after_path.startswith(("~", "$", "active "))
+            and ";" not in after_path
+            and " -> " not in after_path
+        )
+        if (
+            category.endswith("-skill")
+            and is_simple_path
+            and not Path(after_path).is_absolute()
+            and after_path.endswith("SKILL.md")
+        ):
+            if not (root / after_path).is_file():
+                errors.append(
+                    f"inventory line {lineno} ({rid or '?'}): "
+                    f"after_path does not exist: {after_path}"
+                )
+            is_manifest_source = (
+                after_path in manifest_link_files
+                or any(
+                    after_path.startswith(f"{source}/")
+                    for source in manifest_link_dirs
+                )
+            )
+            if not is_manifest_source:
+                errors.append(
+                    f"inventory line {lineno} ({rid or '?'}): "
+                    f"after_path is not a manifest source: {after_path}"
+                )
 
     # Every operational script/config surface named by Phase 1 must be an
     # individual row; documentation and generated archives are intentionally

@@ -258,6 +258,12 @@ run_case non-executable-script \
 run_case inventory-missing-element \
   'printf "#!/usr/bin/env bash\nexit 0\n" > "$repo/scripts/uninventoried.sh"; chmod +x "$repo/scripts/uninventoried.sh"; git -C "$repo" add scripts/uninventoried.sh' \
   'operational element missing from inventory: scripts/uninventoried.sh'
+run_case inventory-skill-after-path-missing \
+  'awk -F "\t" "BEGIN { OFS = FS } NR == 2 { \$1 = \"fixture:missing-skill\"; \$2 = \"fixture-skill\"; \$4 = \"claude/skills/missing/SKILL.md\" } { print }" "$repo/docs/reports/inventory-elements.tsv" > "$repo/inventory.tmp"; mv "$repo/inventory.tmp" "$repo/docs/reports/inventory-elements.tsv"' \
+  'inventory line 2 (fixture:missing-skill): after_path does not exist: claude/skills/missing/SKILL.md'
+run_case inventory-skill-after-path-unlinked \
+  'mkdir -p "$repo/docs/unlinked"; printf "# Unlinked skill\n" > "$repo/docs/unlinked/SKILL.md"; awk -F "\t" "BEGIN { OFS = FS } NR == 2 { \$1 = \"fixture:unlinked-skill\"; \$2 = \"fixture-skill\"; \$4 = \"docs/unlinked/SKILL.md\" } { print }" "$repo/docs/reports/inventory-elements.tsv" > "$repo/inventory.tmp"; mv "$repo/inventory.tmp" "$repo/docs/reports/inventory-elements.tsv"' \
+  'inventory line 2 (fixture:unlinked-skill): after_path is not a manifest source: docs/unlinked/SKILL.md'
 run_case unsupported-model-syntax \
   'printf -- "---\n\"model\": opus\n---\n" > "$repo/claude/agents/bad.md"; git -C "$repo" add claude/agents/bad.md' \
   'model pin scan failed:'
