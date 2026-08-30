@@ -8,10 +8,10 @@ paths:
 
 ## Permission 構文
 
-- `Bash:*`, `Read:*`, `WebFetch:*` は**無効な構文**
+- `Bash:*`, `Read:*`, `WebFetch:*` は**無効な構文**（PostToolUse hook が検査する）
 - ツール全体を許可するには `"Bash"`, `"Read"` 等（`:*` なし）
 - 引数プレフィックスマッチ: trailing space-star `Bash(git *)` を canonical 表記とする。suffix `:*`（`Bash(git:*)`）は末尾でのみ space-star と同等に認識される legacy-equivalent（deprecated と断定しない。permission dialog は space-star を生成する。確認日 2026-07-23）
-- no-space wildcard（例 `Bash(npm run test*)`）は word boundary を持たず任意の後続文字列に match するため、allow には使わない（validator が拒否する）
+- no-space wildcard（例 `Bash(npm run test*)`）は word boundary を持たず任意の後続文字列に match するため、allow には使わない（PostToolUse hook が検査する）
 
 ## Settings 階層
 
