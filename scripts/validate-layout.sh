@@ -927,6 +927,7 @@ else:
             errors.append(f"skill authority header mismatch: {reader.fieldnames!r}")
         else:
             seen: set[tuple[str, str]] = set()
+            authority_modes: dict[str, list[str]] = defaultdict(list)
             for line_number, row in enumerate(reader, 2):
                 skill = row["skill"].strip()
                 mode = row["mode"].strip()
@@ -939,9 +940,55 @@ else:
                 seen.add(key)
                 if skill not in active:
                     errors.append(f"skill authority line {line_number}: inactive skill {skill}")
+                authority_modes[skill].append(mode)
                 for field in expected[2:8]:
                     if row[field] not in {"allow", "deny"}:
                         errors.append(f"skill authority line {line_number}: {field} must be allow or deny")
+
+            for skill in sorted(active):
+                if skill not in authority_modes:
+                    errors.append(f"skill authority: active skill has no authority row: {skill}")
+
+            modes_by_entrypoint: dict[Path, set[str]] = {}
+            for skill, entrypoints in sorted(active.items()):
+                declared_modes: set[str] = set()
+                for path in sorted(entrypoints):
+                    text = path.read_text(encoding="utf-8")
+                    modes_match = re.search(
+                        r"^## Modes\s*$\n(.*?)(?=^##\s|\Z)",
+                        text,
+                        re.MULTILINE | re.DOTALL,
+                    )
+                    flags: set[str] = set()
+                    if modes_match is not None:
+                        for line in modes_match.group(1).splitlines():
+                            if line.startswith("- "):
+                                flags.update(re.findall(r"--[a-z-]+", line))
+                    modes_by_entrypoint[path] = flags
+                    declared_modes.update(flags)
+
+                authority_tokens = {
+                    token
+                    for mode in authority_modes.get(skill, [])
+                    for token in re.split(r"[|\s]+", mode)
+                    if token
+                }
+                for flag in sorted(declared_modes):
+                    if flag not in authority_tokens:
+                        errors.append(
+                            f"skill authority: active skill mode not in authority table: "
+                            f"{skill} {flag}"
+                        )
+
+                sorted_entrypoints = sorted(entrypoints)
+                if len(sorted_entrypoints) > 1:
+                    first = sorted_entrypoints[0]
+                    for other in sorted_entrypoints[1:]:
+                        if modes_by_entrypoint[first] != modes_by_entrypoint[other]:
+                            errors.append(
+                                f"skill authority: runtime wrappers declare different modes: "
+                                f"{skill} {first.relative_to(root)} vs {other.relative_to(root)}"
+                            )
 
 print("\n".join(errors))
 PYCONTRACT

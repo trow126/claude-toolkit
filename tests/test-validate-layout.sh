@@ -232,7 +232,7 @@ run_case claude-skill-reference-escapes-package \
   'printf "\n[external](../../README.md)\n" >> "$repo/claude/skills/sample-skill/SKILL.md"' \
   'Claude skill reference escapes package: claude/skills/sample-skill/SKILL.md -> ../../README.md'
 run_case valid-skill-dependency \
-  'mkdir -p "$repo/claude/skills/dependency"; printf "%s\n" "---" "name: dependency" "description: Fixture dependency." "---" "# Dependency" > "$repo/claude/skills/dependency/SKILL.md"; printf "claude\tsample-skill\tdependency\tfixture\n" >> "$repo/docs/contracts/skill-dependencies.tsv"; git -C "$repo" add claude/skills/dependency/SKILL.md docs/contracts/skill-dependencies.tsv' \
+  'mkdir -p "$repo/claude/skills/dependency"; printf "%s\n" "---" "name: dependency" "description: Fixture dependency." "---" "# Dependency" > "$repo/claude/skills/dependency/SKILL.md"; printf "claude\tsample-skill\tdependency\tfixture\n" >> "$repo/docs/contracts/skill-dependencies.tsv"; printf "dependency\tdefault\tdeny\tdeny\tdeny\tdeny\tdeny\tdeny\tfixture dependency read\n" >> "$repo/docs/contracts/skill-authority.tsv"; git -C "$repo" add claude/skills/dependency/SKILL.md docs/contracts/skill-dependencies.tsv docs/contracts/skill-authority.tsv' \
   PASS
 run_case missing-skill-dependency \
   'printf "claude\tsample-skill\tmissing\tfixture\n" >> "$repo/docs/contracts/skill-dependencies.tsv"' \
@@ -246,6 +246,12 @@ run_case missing-consumer-declaration \
 run_case invalid-authority-value \
   'sed -i "s/sample-skill\tdefault\tdeny/sample-skill\tdefault\tmaybe/" "$repo/docs/contracts/skill-authority.tsv"' \
   'repo_write must be allow or deny'
+run_case missing-active-skill-authority \
+  'sed -i "/^sample-skill\t/d" "$repo/docs/contracts/skill-authority.tsv"' \
+  'active skill has no authority row: sample-skill'
+run_case missing-active-skill-mode \
+  'printf "\n## Modes\n\n- \`--extra\`: fixture mode.\n" >> "$repo/claude/skills/sample-skill/SKILL.md"' \
+  'active skill mode not in authority table: sample-skill --extra'
 run_case stale-reference \
   'printf "/gh:start\n" >> "$repo/claude/rules/sample.md"' \
   'stale reference in claude/rules/sample.md'
