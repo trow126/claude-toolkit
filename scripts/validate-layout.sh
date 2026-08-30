@@ -689,6 +689,66 @@ else
   fi
 fi
 
+# Active accepted exceptions are bound to owner-approved artifact content.
+ACCEPTED_EXCEPTIONS_ERRORS="$(python3 - "$REPO_ROOT" <<'PYEXCEPTIONS'
+import hashlib
+import re
+import sys
+from pathlib import Path
+
+root = Path(sys.argv[1])
+ledger_rel = Path("docs/reports/accepted-exceptions.md")
+ledger = root / ledger_rel
+if not ledger.is_file():
+    print("accepted exceptions ledger missing")
+    raise SystemExit
+
+text = ledger.read_text(encoding="utf-8")
+active_match = re.search(
+    r"^## Active records\s*$\n(?P<section>.*?)(?=^## )",
+    text,
+    re.MULTILINE | re.DOTALL,
+)
+active_section = active_match.group("section") if active_match else ""
+rows = [line for line in active_section.splitlines() if line.startswith("| EX-")]
+header_match = re.search(r"\*\*active exceptions: (\d+)\*\*", text)
+header_count = int(header_match.group(1)) if header_match else None
+if header_count != len(rows):
+    header_display = str(header_count) if header_count is not None else "missing"
+    print(
+        f"accepted exceptions count mismatch: header {header_display} "
+        f"vs {len(rows)} rows"
+    )
+
+artifact_pattern = re.compile(
+    r"`([^`]+)`\s+SHA-256\s+`([0-9a-f]{64})`"
+)
+for row in rows:
+    exception_id = row.split("|", 2)[1].strip()
+    artifacts = artifact_pattern.findall(row)
+    if not artifacts:
+        print(f"accepted exception {exception_id}: no artifact hash recorded")
+        continue
+    for artifact_path, ledger_hash in artifacts:
+        artifact = root / artifact_path
+        current_hash = None
+        if artifact.is_file():
+            current_hash = hashlib.sha256(artifact.read_bytes()).hexdigest()
+        if current_hash != ledger_hash:
+            current_display = current_hash[:12] if current_hash else "missing"
+            print(
+                f"accepted exception {exception_id}: artifact hash mismatch: "
+                f"{artifact_path} (ledger {ledger_hash[:12]} vs current "
+                f"{current_display}); owner re-approval required in {ledger_rel}"
+            )
+PYEXCEPTIONS
+)"
+if [[ -n "$ACCEPTED_EXCEPTIONS_ERRORS" ]]; then
+  while IFS= read -r line; do
+    [[ -n "$line" ]] && fail "$line"
+  done <<< "$ACCEPTED_EXCEPTIONS_ERRORS"
+fi
+
 # =========================================================================
 # 10. skill frontmatter schema(Agent Skills core spec)
 #    name: 親directory名と一致・^[a-z0-9]+(-[a-z0-9]+)*$・64字以内

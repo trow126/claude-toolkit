@@ -32,6 +32,11 @@ build_fixture() {
   cp "$REPO_ROOT/claude/settings.json" "$repo/claude/settings.json"
   cp "$REPO_ROOT/claude/managed-settings.json" "$repo/claude/managed-settings.json"
 
+  local accepted_sha
+  accepted_sha="$(sha256sum "$repo/claude/managed-settings.json" | awk '{print $1}')"
+  printf '# Accepted exceptions\n\n**active exceptions: 1**\n\n## Active records\n\n| ID | 対象 artifact |\n|---|---|\n| EX-900 | `claude/managed-settings.json` SHA-256 `%s` |\n\n## Closed records\n' \
+    "$accepted_sha" > "$repo/docs/reports/accepted-exceptions.md"
+
   cat > "$repo/install/manifest.tsv" <<'MANIFEST'
 link-file	claude/settings.json	.claude/settings.json
 link-file	claude/CLAUDE.md	.claude/CLAUDE.md
@@ -162,6 +167,15 @@ run_case() {
 }
 
 run_case valid ':' PASS
+run_case accepted-exception-hash-mismatch \
+  'printf " \n" >> "$repo/claude/managed-settings.json"' \
+  'artifact hash mismatch: claude/managed-settings.json'
+run_case accepted-exception-count-mismatch \
+  'sed -i "s/active exceptions: 1/active exceptions: 2/" "$repo/docs/reports/accepted-exceptions.md"' \
+  'accepted exceptions count mismatch'
+run_case accepted-exceptions-ledger-missing \
+  'rm "$repo/docs/reports/accepted-exceptions.md"' \
+  'accepted exceptions ledger missing'
 run_case inventory-declared-untracked-source \
   'git -C "$repo" rm --cached -q codex/agents/sample.toml' \
   PASS
