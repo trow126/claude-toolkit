@@ -93,7 +93,7 @@ assert_metric "実 repo: Codex custom agent は4件" "$out" "codex_custom_agents
 assert_metric "実 repo: active skill entrypoint は150行以内" "$out" "active_skill_entrypoint_over_150_lines" "0"
 assert_metric "実 repo: active skill entrypoint は8192 bytes以内" "$out" "active_skill_entrypoint_over_8192_bytes" "0"
 assert_metric "実 repo: shared rule always-onはcoreのみ" "$out" "shared_rules_always_on_bytes" "1407"
-assert_metric "実 repo: 要素別 inventory 行数" "$out" "inventory_audited_elements" "157"
+assert_metric "実 repo: 要素別 inventory 行数" "$out" "inventory_audited_elements" "158"
 assert_metric "実 repo: review/progress/retrospective active unique path" "$out" "review_progress_retrospective_mechanisms" "10"
 assert_metric "実 repo: built-in agent overlap 0" "$out" "custom_builtin_agent_overlaps" "0"
 assert_metric "実 repo: managed policy present" "$out" "managed_policy_present" "yes"
