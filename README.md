@@ -74,7 +74,8 @@ Skillの副作用modeは`docs/contracts/skill-authority.tsv`がmachine-readable�
 3. ルート `.gitignore` に `<agent>/*` の default-deny + 追跡したい設定ファイルの allowlist を追加する
 4. `docs/reports/inventory-elements.tsv` に要素別11軸評価を1行追加し、`inventory-matrix.md` を同期する
 5. rule/skill追加時はcontext consumerまたはauthority contractも更新する
-6. `./scripts/validate-layout.sh` を実行し、manifest・context budget・reference・managed policy・inventory coverage・実行 mode を確認する
+6. skill追加・削除後は`scripts/measure-metrics.sh --repo .`を実行し、`tests/test-measure-metrics.sh`の実 repo 期待値と`docs/plans/2026-07-23-agents-toolkit-modernization.md`の`metrics:after` blockを更新してから、`tests/test-measure-metrics.sh`と`tests/test-report-consistency.sh`を実行する
+7. `./scripts/validate-layout.sh` を実行し、manifest・context budget・reference・managed policy・inventory coverage・実行 mode を確認する
 
 新しいruntimeを正式対応へ追加する場合は、sourceとruntime stateの分離だけでなく、manifest配布、context consumer宣言、deterministic test、実CLIでのlive discoveryを同じ変更で追加する。transport内の分岐やarchive templateだけでは正式対応とみなさない。
 
