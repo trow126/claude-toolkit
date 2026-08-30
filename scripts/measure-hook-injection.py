@@ -11,14 +11,34 @@ import tempfile
 from pathlib import Path
 
 
-def run(cmd: list[str], cwd: Path, env: dict[str, str], check: bool = True) -> subprocess.CompletedProcess[bytes]:
-    return subprocess.run(cmd, cwd=cwd, env=env, check=check, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+def run(
+    cmd: list[str],
+    cwd: Path,
+    env: dict[str, str],
+    check: bool = True,
+    input_data: bytes | None = None,
+) -> subprocess.CompletedProcess[bytes]:
+    return subprocess.run(
+        cmd,
+        cwd=cwd,
+        env=env,
+        check=check,
+        input=input_data,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
 
 
-def run_hook(path: Path, cwd: Path, env: dict[str, str], strict_json: bool) -> int:
+def run_hook(
+    path: Path,
+    cwd: Path,
+    env: dict[str, str],
+    strict_json: bool,
+    input_data: bytes | None = None,
+) -> int:
     if not path.is_file():
         return 0
-    proc = run([str(path)], cwd, env)
+    proc = run([str(path)], cwd, env, input_data=input_data)
     if strict_json:
         try:
             data = json.loads(proc.stdout.decode("utf-8"))
@@ -40,6 +60,18 @@ def max_bytes(root: Path) -> str:
     match = re.search(r"^MAX_OUTPUT_BYTES\s*=\s*([0-9]+)\s*$", text, re.M)
     if not match:
         raise SystemExit("ERROR: bounded hook emitter is missing MAX_OUTPUT_BYTES")
+    return match.group(1)
+
+
+def prompt_submit_max_bytes(path: Path) -> str:
+    if not path.is_file():
+        return "0"
+    text = path.read_text(encoding="utf-8")
+    match = re.search(r"^MAX_INJECTION_BYTES=([0-9]+)$", text, re.M)
+    if not match:
+        raise SystemExit(
+            "ERROR: prompt submit hook is missing MAX_INJECTION_BYTES"
+        )
     return match.group(1)
 
 
@@ -78,11 +110,29 @@ def main() -> int:
         run(["git", "add", "README.md"], repo, env)
         compact = run_hook(root / "claude/hooks/post-compact-hook.sh", repo, env, strict_json)
         bound = max_bytes(root)
+        prompt_hook = root / "claude/hooks/prompt-submit-hook.sh"
+        prompt_input = json.dumps(
+            {
+                "hook_event_name": "UserPromptSubmit",
+                "user_prompt": "fixture",
+                "cwd": str(repo),
+            }
+        ).encode("utf-8")
+        prompt_submit = run_hook(
+            prompt_hook,
+            repo,
+            env,
+            strict_json=False,
+            input_data=prompt_input,
+        )
+        prompt_bound = prompt_submit_max_bytes(prompt_hook)
 
     print(f"session_start_system_message_typical_bytes: {session}")
     print(f"session_start_system_message_max_bytes: {bound}")
     print(f"post_compact_system_message_typical_bytes: {compact}")
     print(f"post_compact_system_message_max_bytes: {bound}")
+    print(f"user_prompt_submit_injection_typical_bytes: {prompt_submit}")
+    print(f"user_prompt_submit_injection_max_bytes: {prompt_bound}")
     return 0
 
 

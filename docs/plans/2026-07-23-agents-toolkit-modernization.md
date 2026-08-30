@@ -97,12 +97,12 @@ active_skill_entrypoint_over_150_lines: 0
 active_skill_entrypoint_over_8192_bytes: 0
 shared_rules_always_on_bytes: 1269
 shared_rules_on_demand_bytes: 10445
-hook_scripts: 8
-hook_registrations: 10
+hook_scripts: 9
+hook_registrations: 11
 shared_rules: 10
 claude_rules: 3
 output_styles: 4
-inventory_audited_elements: 162
+inventory_audited_elements: 164
 review_progress_retrospective_mechanisms: 10
 custom_builtin_agent_overlaps: 0
 full_model_pins: 0
@@ -128,6 +128,8 @@ session_start_system_message_typical_bytes: 102
 session_start_system_message_max_bytes: 512
 post_compact_system_message_typical_bytes: 128
 post_compact_system_message_max_bytes: 512
+user_prompt_submit_injection_typical_bytes: 198
+user_prompt_submit_injection_max_bytes: 256
 claude_session_start_injection_typical_bytes: 4515
 claude_session_start_injection_max_bytes: 4925
 unconditional_delegation_gh_start: 0

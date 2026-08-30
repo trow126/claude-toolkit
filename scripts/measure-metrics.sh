@@ -248,11 +248,15 @@ measure_tree() {
     echo "auto_memory_enabled: n/a"
   fi
 
-  local hook_metrics session_typical session_max
+  local hook_metrics session_typical session_max prompt_typical prompt_max
   hook_metrics="$(python3 "$SCRIPT_DIR/measure-hook-injection.py" "$root")"
-  printf '%s\n' "$hook_metrics"
   session_typical="$(awk -F': ' '/^session_start_system_message_typical_bytes:/{print $2}' <<< "$hook_metrics")"
   session_max="$(awk -F': ' '/^session_start_system_message_max_bytes:/{print $2}' <<< "$hook_metrics")"
+  prompt_typical="$(awk -F': ' '/^user_prompt_submit_injection_typical_bytes:/{print $2}' <<< "$hook_metrics")"
+  prompt_max="$(awk -F': ' '/^user_prompt_submit_injection_max_bytes:/{print $2}' <<< "$hook_metrics")"
+  printf '%s\n' "$hook_metrics"
+  [[ "$prompt_typical" =~ ^[0-9]+$ ]] || { echo "ERROR: invalid UserPromptSubmit typical byte metric" >&2; exit 1; }
+  [[ "$prompt_max" =~ ^[0-9]+$ ]] || { echo "ERROR: invalid UserPromptSubmit max byte metric" >&2; exit 1; }
   echo "claude_session_start_injection_typical_bytes: $((claude_total + session_typical))"
   if [[ "$session_max" =~ ^[0-9]+$ ]]; then
     echo "claude_session_start_injection_max_bytes: $((claude_total + session_max))"

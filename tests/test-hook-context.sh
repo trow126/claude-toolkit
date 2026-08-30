@@ -38,12 +38,18 @@ if [[ "$bytes" -le 512 ]]; then ok "non-git CWD output is bounded"; else ng "non
 metrics="$(python3 "$REPO_ROOT/scripts/measure-hook-injection.py" "$REPO_ROOT")"
 for expected in \
   'session_start_system_message_max_bytes: 512' \
-  'post_compact_system_message_max_bytes: 512'; do
+  'post_compact_system_message_max_bytes: 512' \
+  'user_prompt_submit_injection_max_bytes: 256'; do
   if grep -qxF "$expected" <<< "$metrics"; then ok "metrics reports $expected"; else ng "missing metric $expected"; fi
 done
-for key in session_start_system_message_typical_bytes post_compact_system_message_typical_bytes; do
+for key in \
+  session_start_system_message_typical_bytes \
+  post_compact_system_message_typical_bytes \
+  user_prompt_submit_injection_typical_bytes; do
   value="$(awk -F': ' -v k="$key" '$1==k{print $2}' <<< "$metrics")"
-  if [[ "$value" =~ ^[1-9][0-9]*$ && "$value" -le 512 ]]; then ok "$key is numeric and bounded ($value)"; else ng "$key invalid ($value)"; fi
+  max=512
+  [[ "$key" == user_prompt_submit_injection_typical_bytes ]] && max=256
+  if [[ "$value" =~ ^[1-9][0-9]*$ && "$value" -le "$max" ]]; then ok "$key is numeric and bounded ($value)"; else ng "$key invalid ($value)"; fi
 done
 
 printf '\n'
