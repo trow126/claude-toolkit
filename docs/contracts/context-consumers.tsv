@@ -2,7 +2,7 @@ rule	load_mode	consumer	trigger
 core-contract	always	claude/CLAUDE.md	all tasks
 core-contract	always	codex/AGENTS.md	all tasks
 failure-investigation	on-demand	skill:implementation-quality	failure diagnosis or bug investigation
-git-workflow	on-demand	skill:git-operations	generic git operation
+git-workflow	on-demand	skill:git-operations	mutating git operation
 git-workflow	on-demand	skill:gh-start|skill:gh-pr|skill:gh-review	GitHub development workflow
 issue-completeness	on-demand	skill:issue-writing	Issue body create or update
 learnings	on-demand	skill:implementation-quality	relevant recurring environment or CLI failure

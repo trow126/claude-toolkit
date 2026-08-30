@@ -5,7 +5,7 @@ description: Use for generic requests to inspect, stage, commit, branch, merge, 
 
 # Git Operations
 
-Read `~/.agents/rules/git-workflow.md` before a mutating Git operation.
+Read `~/.agents/rules/git-workflow.md` before a mutating Git operation (any mode other than `default`); inspection in `default` mode does not load it.
 
 Use one explicit mode per request: `default` (inspect), `stage`, `branch`, `commit`, `merge`, or `push`. A mode authorizes only the matching operation in `docs/contracts/skill-authority.tsv`; do not chain modes by implication.
 
