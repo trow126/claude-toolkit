@@ -1,0 +1,93 @@
+# Baseline 証跡 — 2026-08-30 設定監査
+#
+# 対象 commit: 60204e4
+# 実行環境: Linux, Claude Code CLI 2.1.251, Codex CLI 0.151.0, python3
+# 実行コマンド: scripts/measure-metrics.sh / python3 scripts/measure-hook-injection.py /home/trow126/agents-toolkit / scripts/validate-layout.sh
+# 監査実行日時: 2026-08-30 (Asia/Tokyo)
+
+## scripts/measure-metrics.sh
+
+== metrics: /home/trow126/agents-toolkit ==
+claude_md_bytes: 3119
+claude_md_lines: 40
+claude_always_rules_bytes: 0
+claude_always_rules_lines: 0
+claude_imported_shared_bytes: 1407 (1 files)
+claude_always_on_total: 4526
+codex_agents_md_bytes: 3564
+codex_agents_md_lines: 45
+combined_always_on_total: 8090
+custom_agents: 10
+codex_custom_agents: 4
+claude_skills: 21
+codex_skills: 21
+active_skill_entrypoints: 34
+active_skill_entrypoint_bytes: 80740
+active_skill_entrypoint_max_lines: 121
+active_skill_entrypoint_over_150_lines: 0
+active_skill_entrypoint_over_8192_bytes: 0
+shared_rules_always_on_bytes: 1407
+shared_rules_on_demand_bytes: 10544
+hook_scripts: 7
+hook_registrations: 9
+shared_rules: 10
+claude_rules: 3
+output_styles: 4
+inventory_audited_elements: 157
+review_progress_retrospective_mechanisms: 10
+custom_builtin_agent_overlaps: 0
+full_model_pins: 0
+tier_aliases: 10
+permissions_allow_count: 4
+permissions_ask_count: 0
+permissions_deny_count: 87
+bypass_permissions_default: yes
+dangerous_mode_prompt_skipped: yes
+sandbox_enabled: no
+auto_mode_lockout_ok: yes
+effective_preallowed_domains_count: 0
+unsandboxed_query_capable_allows: 0
+managed_bash_allows: 0
+managed_policy_present: yes
+managed_permission_lock_ok: yes
+managed_hooks_lock_ok: yes
+managed_read_lock_ok: yes
+managed_domain_lock_ok: yes
+sandbox_auto_allow_bash: yes
+auto_memory_enabled: no
+session_start_system_message_typical_bytes: 102
+session_start_system_message_max_bytes: 512
+post_compact_system_message_typical_bytes: 128
+post_compact_system_message_max_bytes: 512
+claude_session_start_injection_typical_bytes: 4628
+claude_session_start_injection_max_bytes: 5038
+unconditional_delegation_gh_start: 0
+always_on_learnings_paths: 0
+duplicated_principles_greppable: 0 (of 3 signatures; manual-assessed pairs resolved by 2026-07-26 leaf-rule dedup)
+
+## python3 scripts/measure-hook-injection.py /home/trow126/agents-toolkit
+
+session_start_system_message_typical_bytes: 102
+session_start_system_message_max_bytes: 512
+post_compact_system_message_typical_bytes: 128
+post_compact_system_message_max_bytes: 512
+
+## scripts/validate-layout.sh
+
+== 1. forbidden tracked runtime names ==
+== 2. absolute home paths ==
+== 3. manifest integrity ==
+== 4. tracked files outside manifest coverage ==
+== 5. agent schemas and private project sections ==
+== 6. local artifacts under source trees ==
+== 7. unconsumed shared rules ==
+== 8. inventory completeness and audit schema ==
+== 9. managed owner policy and governed settings ==
+WARN: claude/settings.json:7: model=claude-fable-5[1m] (runtime-managed via /model)
+== 10. skill frontmatter schema ==
+== 11. skill context and authority contracts ==
+== 12. stale references in active tree ==
+== 13. supported runtime context adapters ==
+== 14. executable bits on direct-execution surfaces ==
+
+PASS: no layout violations found
