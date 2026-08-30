@@ -36,5 +36,5 @@
 - managed policyはowner選択により`bypassPermissions`既定・sandbox無効である。permission表示を安全境界とみなさず、core contractとmanaged hooksを守る。
 - `~/.claude/settings.json`をsession内で直接編集せず、project/local settingsへpermission・hook・sandbox policyを追加しない。
 - project/localのsecurity policy driftは`scripts/check-runtime.sh`と`project-policy-gate`が拒否する。
-- Git操作はpromptなしで実行され得るため、commit・push・外部writeの個別承認を厳守する。
-- Codexへのtask委任は`codex:codex-rescue` Agentで包まない。Claudeのmain sessionから`codex-companion.mjs task`を直接`Bash(run_in_background=true)`で起動し、完了通知のownerをmain sessionに保つ。
+- bypassPermissions下ではGit操作がpromptなしで実行されるため、commit・push・外部writeの承認はcore contractに従う。
+- Codex委任は`codex:codex-rescue` Agentで包まない（hookが拒否し、完了通知がmain sessionに届かない）。`codex-companion.mjs task`はmain sessionから`Bash(run_in_background=true)`で起動する。
