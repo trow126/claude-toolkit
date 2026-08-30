@@ -9,8 +9,9 @@
 #   3. Claude Code version が検証済み下限以上の stable であること(H-017)
 #      本 toolkit の settings は requiredMinimumVersion、
 #      skipDangerousModePermissionPrompt、managed hooks 等の現行挙動に依存する。
-#      検証済み下限: 2.1.218。prerelease(例: 2.1.218-beta.1)は検証対象外として拒否する。
-#      managed policy の requiredMinimumVersion=2.1.218 が対応versionでは startupを拒否する。
+#      検証済み下限: 2.1.219。prerelease(例: 2.1.219-beta.1)は検証対象外として拒否する。
+#      managed policy の requiredMinimumVersion=2.1.219 が対応versionでは startupを拒否する。
+#      根拠: https://raw.githubusercontent.com/anthropics/claude-code/main/CHANGELOG.md の 2.1.219 "Added Claude Opus 5 (`claude-opus-5`)"。
 #      それ以前のversionは当該keyを認識しないため、本 script + bootstrap も defense-in-depth
 #      の version gate として維持する。
 #
@@ -20,7 +21,7 @@
 #                              (claude 欠落は NOTE で続行。codex 専用マシンを壊さない)
 set -euo pipefail
 
-MINIMUM="2.1.218"
+MINIMUM="2.1.219"
 TESTED_MAJOR="2"
 SOFT_MISSING="false"
 SCRIPT_PATH="${BASH_SOURCE[0]}"

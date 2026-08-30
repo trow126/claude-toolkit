@@ -115,7 +115,7 @@ setup_sandbox() {
 STUB_CLAUDE_BIN="$(mktemp -d)/stub-claude-bin"
 trap 'rm -rf "$(dirname "$STUB_CLAUDE_BIN")"' EXIT
 mkdir -p "$STUB_CLAUDE_BIN"
-printf '#!/usr/bin/env bash\necho "2.1.218 (Claude Code)"\n' > "$STUB_CLAUDE_BIN/claude"
+printf '#!/usr/bin/env bash\necho "2.1.219 (Claude Code)"\n' > "$STUB_CLAUDE_BIN/claude"
 chmod +x "$STUB_CLAUDE_BIN/claude"
 
 run_migrate() {

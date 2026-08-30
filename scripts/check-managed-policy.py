@@ -106,8 +106,8 @@ def validate_managed(managed: dict[str, Any], errors: list[str]) -> dict[str, An
     )
 
     require(
-        managed.get("requiredMinimumVersion") == "2.1.218",
-        'managed settings require requiredMinimumVersion="2.1.218"',
+        managed.get("requiredMinimumVersion") == "2.1.219",
+        'managed settings require requiredMinimumVersion="2.1.219"',
         errors,
     )
 

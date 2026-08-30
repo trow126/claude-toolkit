@@ -128,7 +128,7 @@ NO_OVERLAY="$SANDBOX/no-such-overlay"
 # tests/test-check-runtime.sh が網羅する
 STUB_CLAUDE_BIN="$SANDBOX/stub-claude-bin"
 mkdir -p "$STUB_CLAUDE_BIN"
-printf '#!/usr/bin/env bash\necho "2.1.218 (Claude Code)"\n' > "$STUB_CLAUDE_BIN/claude"
+printf '#!/usr/bin/env bash\necho "2.1.219 (Claude Code)"\n' > "$STUB_CLAUDE_BIN/claude"
 chmod +x "$STUB_CLAUDE_BIN/claude"
 
 managed_target() {

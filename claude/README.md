@@ -6,7 +6,7 @@
 
 - `CLAUDE.md`: `core-contract`、単一 owner、routing、runtime固有事項だけの常時context
 - `settings.json`: model、effort、status line、plugin、`autoMemoryEnabled: false` などの**非 security** user preference
-- `managed-settings.json`: owner 選択の `bypassPermissions`、sandbox、credentials、hooks、top-level `disableAutoMode`、`requiredMinimumVersion: 2.1.218`
+- `managed-settings.json`: owner 選択の `bypassPermissions`、sandbox、credentials、hooks、top-level `disableAutoMode`、`requiredMinimumVersion: 2.1.219`
 - `bin/`: deterministic helper。`project-policy-gate` は project/local security override を拒否する
 - `hooks/`: managed policy からのみ登録される lifecycle / PreToolUse hook
 - `rules/`, `agents/`, `skills/`: path-scoped knowledge、specialist、progressive-disclosure skill
@@ -15,7 +15,7 @@
 
 ### 前提
 
-- Claude Code 2.1.218 stable 以上
+- Claude Code 2.1.219 stable 以上
 - `jq`, Python 3, Git
 - GitHub workflow を使う場合のみ、認証済みの `gh`
 
