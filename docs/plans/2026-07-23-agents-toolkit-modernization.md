@@ -96,13 +96,13 @@ active_skill_entrypoint_max_lines: 121
 active_skill_entrypoint_over_150_lines: 0
 active_skill_entrypoint_over_8192_bytes: 0
 shared_rules_always_on_bytes: 1269
-shared_rules_on_demand_bytes: 10407
-hook_scripts: 7
-hook_registrations: 9
+shared_rules_on_demand_bytes: 10445
+hook_scripts: 8
+hook_registrations: 10
 shared_rules: 10
 claude_rules: 3
 output_styles: 4
-inventory_audited_elements: 159
+inventory_audited_elements: 162
 review_progress_retrospective_mechanisms: 10
 custom_builtin_agent_overlaps: 0
 full_model_pins: 0
