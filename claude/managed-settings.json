@@ -321,6 +321,17 @@
           }
         ]
       }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/prompt-submit-hook.sh",
+            "timeout": 5
+          }
+        ]
+      }
     ]
   },
   "requiredMinimumVersion": "2.1.219"

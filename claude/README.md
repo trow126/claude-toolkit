@@ -8,7 +8,7 @@
 - `settings.json`: model、effort、status line、plugin、`autoMemoryEnabled: false` などの**非 security** user preference
 - `managed-settings.json`: owner 選択の `bypassPermissions`、sandbox、credentials、hooks、top-level `disableAutoMode`、`requiredMinimumVersion: 2.1.219`
 - `bin/`: deterministic helper。`project-policy-gate` は project/local security override を拒否する
-- `hooks/`: managed policy からのみ登録される lifecycle / tool hook
+- `hooks/`: managed policy からのみ登録される lifecycle / tool hook。UserPromptSubmit では進め方の短文を各 prompt に注入する
 - `rules/`, `agents/`, `skills/`: path-scoped knowledge、specialist、progressive-disclosure skill
 
 ## 導入
@@ -49,7 +49,7 @@ Claude Code の scope は managed > CLI > project local > project > user。toolk
 
 ## Hook の失敗方針
 
-検証 gate の `pre-bash-validate-hook.sh` と `config-change-hook.sh` は、入力・依存・内部処理の異常も exit 2 とする fail-closed。lint 型フィードバックの `post-edit-lint-hook.sh` は確定した違反だけを exit 2 とし、内部エラーは無出力の exit 0 にする。フィードバックは同じ turn の編集 agent にだけ返るため、linter の不具合で作業を止めない。
+検証 gate の `pre-bash-validate-hook.sh` と `config-change-hook.sh` は、入力・依存・内部処理の異常も exit 2 とする fail-closed。lint 型フィードバックの `post-edit-lint-hook.sh` は確定した違反だけを exit 2 とし、内部エラーは無出力の exit 0 にする。`prompt-submit-hook.sh` も delivery 用の fail-open とし、上限超過を含む異常時は prompt を止めず無出力の exit 0 にする。フィードバックは同じ turn の編集 agent にだけ返るため、linter の不具合で作業を止めない。
 
 custom XDG base directory は非対応。`XDG_CONFIG_HOME` 等が `$HOME` 配下の標準位置と同値でなければ doctor が拒否する。
 
@@ -81,6 +81,7 @@ Git 操作は permission prompt なしで実行される。リポジトリの Gi
 - 常時共有ruleは`core-contract` 1本だけ
 - test、No Fallback、Git、障害調査、learningsは`implementation-quality`、`git-operations`、専用skillから必要時に参照
 - SessionStart / PostCompact の `systemMessage` は JSON-safe helper で各512 bytes以下
+- UserPromptSubmit は進め方の2文を毎 prompt に plain text で注入し、末尾改行込み256 bytes以下
 - active skill entrypointは150行・8192 bytes以内。詳細phase・template・exampleは`references/`へ分離
 - `scripts/measure-hook-injection.py`と`measure-metrics.sh`がalways-on/on-demand bytesとskill budgetを再現計測する
 
